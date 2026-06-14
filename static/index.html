@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WB Dashboard</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;background:#f0f2f5;color:#1a1a1a;min-height:100vh}
+    a{color:inherit;text-decoration:none}
+
+    /* Layout */
+    .sidebar{position:fixed;top:0;left:0;bottom:0;width:220px;background:#1a1f2e;color:#cdd3de;display:flex;flex-direction:column}
+    .sidebar-logo{padding:20px;font-size:18px;font-weight:700;color:#fff;border-bottom:1px solid #2d3548}
+    .sidebar-logo span{color:#5b73e8}
+    .sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;border-radius:0;transition:background .15s;font-size:14px}
+    .nav-item:hover,.nav-item.active{background:#2d3548;color:#fff}
+    .nav-item .icon{font-size:18px;width:22px;text-align:center}
+    .sidebar-footer{padding:16px 20px;border-top:1px solid #2d3548;font-size:13px;color:#8899aa}
+    .sidebar-footer button{margin-top:8px;width:100%;padding:8px;background:#2d3548;color:#cdd3de;border:none;border-radius:6px;cursor:pointer;font-size:13px}
+    .sidebar-footer button:hover{background:#3a4560}
+
+    .main{margin-left:220px;padding:28px;min-height:100vh}
+    .page-title{font-size:22px;font-weight:700;margin-bottom:20px}
+    .page-subtitle{font-size:14px;color:#667;margin-top:4px;font-weight:400}
+
+    /* Cards */
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:24px}
+    .card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .card-label{font-size:12px;color:#889;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+    .card-value{font-size:28px;font-weight:700}
+    .card-sub{font-size:13px;color:#889;margin-top:4px}
+    .card.clickable{cursor:pointer;transition:box-shadow .15s,transform .15s}
+    .card.clickable:hover{box-shadow:0 4px 16px rgba(0,0,0,.12);transform:translateY(-2px)}
+
+    /* Tables */
+    .table-wrap{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden}
+    table{width:100%;border-collapse:collapse}
+    th{background:#f7f8fa;padding:11px 14px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#889;border-bottom:1px solid #eee}
+    td{padding:11px 14px;font-size:14px;border-bottom:1px solid #f3f3f3}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:#fafbff}
+
+    /* Tabs */
+    .tabs{display:flex;gap:2px;background:#eef0f5;border-radius:8px;padding:3px;margin-bottom:20px;width:fit-content}
+    .tab{padding:7px 18px;border-radius:6px;cursor:pointer;font-size:14px;color:#556;transition:all .15s}
+    .tab.active{background:#fff;color:#1a1a1a;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+    .tab.disabled{opacity:.4;cursor:not-allowed}
+
+    /* Forms */
+    .form-card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.07);max-width:480px}
+    .form-group{margin-bottom:16px}
+    label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#445}
+    input,select{width:100%;padding:9px 12px;border:1px solid #dde;border-radius:7px;font-size:14px;outline:none;transition:border .15s}
+    input:focus,select:focus{border-color:#5b73e8}
+    .btn{padding:9px 18px;border:none;border-radius:7px;cursor:pointer;font-size:14px;font-weight:600;transition:background .15s}
+    .btn-primary{background:#5b73e8;color:#fff}
+    .btn-primary:hover{background:#4a62d7}
+    .btn-danger{background:#e85b5b;color:#fff}
+    .btn-danger:hover{background:#d44}
+    .btn-sm{padding:5px 12px;font-size:13px}
+    .btn-ghost{background:#f0f2f5;color:#445}
+    .btn-ghost:hover{background:#e4e7ef}
+
+    /* Alerts */
+    .alert{padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:14px}
+    .alert-error{background:#fff0f0;color:#c00;border:1px solid #fcc}
+    .alert-success{background:#f0fff4;color:#0a0;border:1px solid #9fc}
+    .alert-info{background:#f0f4ff;color:#446;border:1px solid #adf}
+
+    /* Badges */
+    .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:12px;font-weight:600}
+    .badge-red{background:#fff0f0;color:#c00}
+    .badge-yellow{background:#fffbf0;color:#a60}
+    .badge-green{background:#f0fff4;color:#080}
+    .badge-grey{background:#f0f2f5;color:#889}
+
+    /* Login */
+    .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f2f5}
+    .login-box{background:#fff;padding:40px;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);width:340px}
+    .login-title{font-size:22px;font-weight:700;margin-bottom:4px}
+    .login-sub{font-size:14px;color:#889;margin-bottom:24px}
+
+    /* Filters */
+    .filters{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+    .filters input{width:150px}
+    .filters .btn{white-space:nowrap}
+
+    /* Permissions table */
+    .perm-table td:first-child{font-weight:600}
+    .perm-check{width:18px;height:18px;cursor:pointer;accent-color:#5b73e8}
+
+    /* Empty state */
+    .empty{text-align:center;padding:48px 20px;color:#889}
+    .empty-icon{font-size:48px;margin-bottom:12px}
+    .empty-text{font-size:16px;font-weight:600;margin-bottom:6px;color:#556}
+
+    /* Loader */
+    .loader{text-align:center;padding:40px;color:#889}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+// ── API ───────────────────────────────────────────────────────────────────────
+const api = {
+  token: () => localStorage.getItem("wb_token"),
+  headers: () => ({ "Content-Type": "application/json", Authorization: `Bearer ${api.token()}` }),
+  async req(method, path, body) {
+    const r = await fetch(path, { method, headers: api.headers(), body: body ? JSON.stringify(body) : undefined });
+    if (r.status === 204) return null;
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
+    return data;
+  },
+  get: (p) => api.req("GET", p),
+  post: (p, b) => api.req("POST", p, b),
+  put: (p, b) => api.req("PUT", p, b),
+  patch: (p, b) => api.req("PATCH", p, b),
+  del: (p) => api.req("DELETE", p),
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const fmt = (n) => typeof n === "number" ? n.toLocaleString("ru-RU", { maximumFractionDigits: 0 }) : "—";
+const fmtRub = (n) => typeof n === "number" ? n.toLocaleString("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }) : "—";
+const today = () => new Date().toISOString().slice(0, 10);
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+
+function useApi(fn, deps = []) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setData(await fn()); }
+    catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, deps);
+  useEffect(() => { load(); }, [load]);
+  return { data, loading, error, reload: load };
+}
+
+// ── Login ─────────────────────────────────────────────────────────────────────
+function Login({ onLogin }) {
+  const [login, setLogin] = useState("");
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault(); setErr(""); setLoading(true);
+    try {
+      const data = await api.post("/api/auth/login", { login, password: pass });
+      localStorage.setItem("wb_token", data.token);
+      onLogin({ is_admin: data.is_admin });
+    } catch (e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div className="login-wrap">
+      <div className="login-box">
+        <div className="login-title">WB Dashboard</div>
+        <div className="login-sub">Вход в систему</div>
+        {err && <div className="alert alert-error">{err}</div>}
+        <form onSubmit={submit}>
+          <div className="form-group"><label>Логин</label><input value={login} onChange={e=>setLogin(e.target.value)} required /></div>
+          <div className="form-group"><label>Пароль</label><input type="password" value={pass} onChange={e=>setPass(e.target.value)} required /></div>
+          <button className="btn btn-primary" style={{width:"100%"}} disabled={loading}>{loading ? "Вход..." : "Войти"}</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function Dashboard({ onSelectCabinet }) {
+  const { data: cabinets, loading, error } = useApi(() => api.get("/api/cabinets"));
+
+  if (loading) return <div className="loader">Загрузка...</div>;
+  if (error) return <div className="alert alert-error">{error}</div>;
+  if (!cabinets?.length) return (
+    <div className="empty">
+      <div className="empty-icon">🏪</div>
+      <div className="empty-text">Нет кабинетов</div>
+      <div>Добавьте WB-кабинет в разделе «Кабинеты»</div>
+    </div>
+  );
+
+  return (
+    <>
+      <div className="page-title">Дашборд <span className="page-subtitle">— обзор всех кабинетов</span></div>
+      <div className="cards">
+        {cabinets.map(c => (
+          <div key={c.id} className="card clickable" onClick={() => onSelectCabinet(c)}>
+            <div className="card-label">Кабинет</div>
+            <div style={{fontSize:18,fontWeight:700,marginBottom:8}}>{c.name}</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {c.permissions.orders && <span className="badge badge-green">Заказы</span>}
+              {c.permissions.stock && <span className="badge badge-green">Остатки</span>}
+              {c.permissions.ads && <span className="badge badge-green">РК</span>}
+              {c.permissions.finances && <span className="badge badge-green">Финансы</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ── Cabinet Detail ────────────────────────────────────────────────────────────
+function CabinetDetail({ cabinet, onBack }) {
+  const p = cabinet.permissions;
+  const tabs = [
+    p.orders && { key: "orders", label: "📦 Заказы" },
+    p.stock && { key: "stock", label: "🏭 Остатки" },
+    p.ads && { key: "ads", label: "📢 РК" },
+    p.finances && { key: "finances", label: "💰 Финансы" },
+  ].filter(Boolean);
+
+  const [tab, setTab] = useState(tabs[0]?.key || "orders");
+  const [dateFrom, setDateFrom] = useState(daysAgo(7));
+  const [dateTo, setDateTo] = useState(today());
+
+  return (
+    <>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <button className="btn btn-ghost btn-sm" onClick={onBack}>← Назад</button>
+        <div className="page-title" style={{margin:0}}>{cabinet.name}</div>
+      </div>
+
+      {tabs.length > 1 && (
+        <div className="tabs">
+          {tabs.map(t => <div key={t.key} className={`tab ${tab===t.key?"active":""}`} onClick={()=>setTab(t.key)}>{t.label}</div>)}
+        </div>
+      )}
+
+      {tab === "orders" && <OrdersTab cabinetId={cabinet.id} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} />}
+      {tab === "stock" && <StockTab cabinetId={cabinet.id} />}
+      {tab === "ads" && <AdsTab cabinetId={cabinet.id} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} />}
+      {tab === "finances" && <FinancesTab cabinetId={cabinet.id} dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} />}
+    </>
+  );
+}
+
+function DateFilter({ dateFrom, dateTo, setDateFrom, setDateTo, onApply }) {
+  return (
+    <div className="filters">
+      <div><label style={{marginBottom:3}}>С</label><input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} /></div>
+      <div><label style={{marginBottom:3}}>По</label><input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} /></div>
+      <button className="btn btn-ghost btn-sm" onClick={()=>{setDateFrom(daysAgo(7));setDateTo(today());}}>7 дней</button>
+      <button className="btn btn-ghost btn-sm" onClick={()=>{setDateFrom(daysAgo(30));setDateTo(today());}}>30 дней</button>
+      <button className="btn btn-primary btn-sm" onClick={onApply}>Применить</button>
+    </div>
+  );
+}
+
+function OrdersTab({ cabinetId, dateFrom, dateTo, setDateFrom, setDateTo }) {
+  const [applied, setApplied] = useState({ dateFrom, dateTo });
+  const { data, loading, error, reload } = useApi(
+    () => api.get(`/api/cabinets/${cabinetId}/orders?date_from=${applied.dateFrom}&date_to=${applied.dateTo}`),
+    [cabinetId, applied.dateFrom, applied.dateTo]
+  );
+
+  const apply = () => setApplied({ dateFrom, dateTo });
+  const totalRevenue = (data || []).reduce((s, o) => s + (o.price || 0), 0);
+
+  return (
+    <>
+      <DateFilter dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} onApply={apply} />
+      <div className="cards" style={{marginBottom:16}}>
+        <div className="card"><div className="card-label">Заказов</div><div className="card-value">{fmt(data?.length)}</div></div>
+        <div className="card"><div className="card-label">Выручка</div><div className="card-value">{fmtRub(totalRevenue)}</div></div>
+      </div>
+      {loading ? <div className="loader">Загрузка...</div> : error ? <div className="alert alert-error">{error}</div> : (
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Дата</th><th>ID заказа</th><th>Артикул</th><th>Статус</th><th>Цена</th><th>Регион</th></tr></thead>
+            <tbody>
+              {data?.length === 0 && <tr><td colSpan={6} style={{textAlign:"center",color:"#889",padding:24}}>Нет данных за период</td></tr>}
+              {data?.map(o => (
+                <tr key={o.order_id}>
+                  <td>{o.date}</td>
+                  <td style={{fontFamily:"monospace",fontSize:13}}>{o.order_id}</td>
+                  <td>{o.article || "—"}</td>
+                  <td>{o.status || "—"}</td>
+                  <td>{fmtRub(o.price)}</td>
+                  <td>{o.region || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+function StockTab({ cabinetId }) {
+  const { data, loading, error } = useApi(() => api.get(`/api/cabinets/${cabinetId}/stock`), [cabinetId]);
+
+  const alertLabel = { red: "⚠️ < 7 дней", yellow: "⏳ < 14 дней", green: "✅ > 14 дней", grey: "— Нет продаж" };
+  const alertBadge = { red: "badge-red", yellow: "badge-yellow", green: "badge-green", grey: "badge-grey" };
+
+  return loading ? <div className="loader">Загрузка...</div> : error ? <div className="alert alert-error">{error}</div> : (
+    <>
+      <div className="cards" style={{marginBottom:16}}>
+        <div className="card"><div className="card-label">Позиций</div><div className="card-value">{fmt(data?.length)}</div></div>
+        <div className="card"><div className="card-label">Требуют поставки</div><div className="card-value" style={{color:"#c00"}}>{fmt(data?.filter(s=>s.alert==="red").length)}</div></div>
+      </div>
+      <div className="table-wrap">
+        <table>
+          <thead><tr><th>Артикул</th><th>Название</th><th>Склад</th><th>Остаток</th><th>Дней осталось</th><th>Статус</th></tr></thead>
+          <tbody>
+            {data?.length === 0 && <tr><td colSpan={6} style={{textAlign:"center",color:"#889",padding:24}}>Нет данных</td></tr>}
+            {data?.map((s, i) => (
+              <tr key={i}>
+                <td style={{fontWeight:600}}>{s.article || "—"}</td>
+                <td>{s.name || "—"}</td>
+                <td style={{fontSize:13,color:"#667"}}>{s.warehouse || "—"}</td>
+                <td>{fmt(s.quantity)}</td>
+                <td>{s.days_left ?? "—"}</td>
+                <td><span className={`badge ${alertBadge[s.alert]}`}>{alertLabel[s.alert]}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function AdsTab({ cabinetId, dateFrom, dateTo, setDateFrom, setDateTo }) {
+  const [applied, setApplied] = useState({ dateFrom, dateTo });
+  const { data, loading, error } = useApi(
+    () => api.get(`/api/cabinets/${cabinetId}/ads?date_from=${applied.dateFrom}&date_to=${applied.dateTo}`),
+    [cabinetId, applied.dateFrom, applied.dateTo]
+  );
+
+  const totalSpend = (data || []).reduce((s, r) => s + (r.spend || 0), 0);
+  const totalOrders = (data || []).reduce((s, r) => s + (r.orders || 0), 0);
+  const drr = totalOrders > 0 ? (totalSpend / (data || []).reduce((s, r) => s + (r.orders || 0) * 1000, 1) * 100) : 0;
+
+  return (
+    <>
+      <DateFilter dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} onApply={() => setApplied({ dateFrom, dateTo })} />
+      <div className="cards" style={{marginBottom:16}}>
+        <div className="card"><div className="card-label">Расходы</div><div className="card-value">{fmtRub(totalSpend)}</div></div>
+        <div className="card"><div className="card-label">Заказы из РК</div><div className="card-value">{fmt(totalOrders)}</div></div>
+      </div>
+      {loading ? <div className="loader">Загрузка...</div> : error ? <div className="alert alert-error">{error}</div> : (
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Дата</th><th>Кампания</th><th>Показы</th><th>Клики</th><th>Заказы</th><th>Расход</th></tr></thead>
+            <tbody>
+              {data?.length === 0 && <tr><td colSpan={6} style={{textAlign:"center",color:"#889",padding:24}}>Нет данных за период</td></tr>}
+              {data?.map((r, i) => (
+                <tr key={i}>
+                  <td>{r.date}</td>
+                  <td>{r.campaign_name || `ID ${r.campaign_id}`}</td>
+                  <td>{fmt(r.views)}</td>
+                  <td>{fmt(r.clicks)}</td>
+                  <td>{fmt(r.orders)}</td>
+                  <td>{fmtRub(r.spend)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+function FinancesTab({ cabinetId, dateFrom, dateTo, setDateFrom, setDateTo }) {
+  const [applied, setApplied] = useState({ dateFrom, dateTo });
+  const { data, loading, error } = useApi(
+    () => api.get(`/api/cabinets/${cabinetId}/finances?date_from=${applied.dateFrom}&date_to=${applied.dateTo}`),
+    [cabinetId, applied.dateFrom, applied.dateTo]
+  );
+
+  const sum = (key) => (data || []).reduce((s, r) => s + (r[key] || 0), 0);
+
+  return (
+    <>
+      <DateFilter dateFrom={dateFrom} dateTo={dateTo} setDateFrom={setDateFrom} setDateTo={setDateTo} onApply={() => setApplied({ dateFrom, dateTo })} />
+      <div className="cards" style={{marginBottom:16}}>
+        <div className="card"><div className="card-label">Выручка</div><div className="card-value">{fmtRub(sum("revenue"))}</div></div>
+        <div className="card"><div className="card-label">К выплате</div><div className="card-value" style={{color:"#080"}}>{fmtRub(sum("to_pay"))}</div></div>
+        <div className="card"><div className="card-label">Комиссия WB</div><div className="card-value">{fmtRub(sum("commission"))}</div></div>
+        <div className="card"><div className="card-label">Логистика</div><div className="card-value">{fmtRub(sum("logistics"))}</div></div>
+      </div>
+      {loading ? <div className="loader">Загрузка...</div> : error ? <div className="alert alert-error">{error}</div> : (
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Дата</th><th>Выручка</th><th>Комиссия</th><th>Логистика</th><th>Штрафы</th><th>К выплате</th></tr></thead>
+            <tbody>
+              {data?.length === 0 && <tr><td colSpan={6} style={{textAlign:"center",color:"#889",padding:24}}>Нет данных за период</td></tr>}
+              {data?.map((r, i) => (
+                <tr key={i}>
+                  <td>{r.date}</td>
+                  <td>{fmtRub(r.revenue)}</td>
+                  <td style={{color:"#c00"}}>{fmtRub(r.commission)}</td>
+                  <td style={{color:"#c00"}}>{fmtRub(r.logistics)}</td>
+                  <td style={{color:"#c00"}}>{fmtRub(r.penalty)}</td>
+                  <td style={{color:"#080",fontWeight:700}}>{fmtRub(r.to_pay)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Admin — Users ─────────────────────────────────────────────────────────────
+function AdminUsers() {
+  const { data: users, loading, error, reload } = useApi(() => api.get("/api/admin/users"));
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ login: "", password: "", is_admin: false });
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+
+  async function createUser(e) {
+    e.preventDefault(); setErr(""); setMsg("");
+    try {
+      await api.post("/api/admin/users", form);
+      setMsg("Пользователь создан"); setShowForm(false); setForm({ login: "", password: "", is_admin: false }); reload();
+    } catch (e) { setErr(e.message); }
+  }
+
+  async function toggleActive(u) {
+    await api.patch(`/api/admin/users/${u.id}/active`); reload();
+  }
+  async function deleteUser(u) {
+    if (!confirm(`Удалить пользователя ${u.login}?`)) return;
+    await api.del(`/api/admin/users/${u.id}`); reload();
+  }
+
+  return (
+    <>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div className="page-title" style={{margin:0}}>Пользователи</div>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowForm(!showForm)}>+ Добавить</button>
+      </div>
+      {err && <div className="alert alert-error">{err}</div>}
+      {msg && <div className="alert alert-success">{msg}</div>}
+      {showForm && (
+        <div className="form-card" style={{marginBottom:20}}>
+          <form onSubmit={createUser}>
+            <div className="form-group"><label>Логин</label><input value={form.login} onChange={e=>setForm({...form,login:e.target.value})} required /></div>
+            <div className="form-group"><label>Пароль</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required minLength={6} /></div>
+            <div className="form-group" style={{display:"flex",alignItems:"center",gap:8}}>
+              <input type="checkbox" id="is_admin" checked={form.is_admin} onChange={e=>setForm({...form,is_admin:e.target.checked})} style={{width:"auto"}} />
+              <label htmlFor="is_admin" style={{margin:0}}>Администратор</label>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button className="btn btn-primary" type="submit">Создать</button>
+              <button className="btn btn-ghost" type="button" onClick={()=>setShowForm(false)}>Отмена</button>
+            </div>
+          </form>
+        </div>
+      )}
+      {loading ? <div className="loader">Загрузка...</div> : error ? <div className="alert alert-error">{error}</div> : (
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Логин</th><th>Роль</th><th>Статус</th><th>Создан</th><th>Действия</th></tr></thead>
+            <tbody>
+              {users?.map(u => (
+                <tr key={u.id}>
+                  <td style={{fontWeight:600}}>{u.login}</td>
+                  <td><span className={`badge ${u.is_admin?"badge-red":"badge-grey"}`}>{u.is_admin?"Admin":"Viewer"}</span></td>
+                  <td><span className={`badge ${u.is_active?"badge-green":"badge-red"}`}>{u.is_active?"Активен":"Отключён"}</span></td>
+                  <td style={{fontSize:13,color:"#889"}}>{u.created_at?.slice(0,10)}</td>
+                  <td style={{display:"flex",gap:6}}>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>toggleActive(u)}>{u.is_active?"Отключить":"Включить"}</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>deleteUser(u)}>Удалить</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Admin — Cabinets ──────────────────────────────────────────────────────────
+function AdminCabinets() {
+  const { data: cabinets, loading, error, reload } = useApi(() => api.get("/api/admin/cabinets"));
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", api_token: "" });
+  const [err, setErr] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function addCabinet(e) {
+    e.preventDefault(); setErr(""); setSaving(true);
+    try {
+      await api.post("/api/admin/cabinets", form);
+      setShowForm(false); setForm({ name: "", api_token: "" }); reload();
+    } catch (e) { setErr(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function deleteCabinet(c) {
+    if (!confirm(`Удалить кабинет "${c.name}"? Все данные будут удалены.`)) return;
+    await api.del(`/api/admin/cabinets/${c.id}`); reload();
+  }
+
+  return (
+    <>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div className="page-title" style={{margin:0}}>Кабинеты WB</div>
+        <button className="btn btn-primary btn-sm" onClick={() => setShowForm(!showForm)}>+ Добавить кабинет</button>
+      </div>
+      {err && <div className="alert alert-error">{err}</div>}
+      {showForm && (
+        <div className="form-card" style={{marginBottom:20}}>
+          <div style={{fontWeight:600,marginBottom:16}}>Новый кабинет</div>
+          <div className="alert alert-info" style={{marginBottom:12,fontSize:13}}>Токен проверяется при добавлении. Убедитесь что у токена есть доступ к нужным разделам WB API.</div>
+          <form onSubmit={addCabinet}>
+            <div className="form-group"><label>Название кабинета</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Мой магазин" required /></div>
+            <div className="form-group"><label>API токен WB</label><input value={form.api_token} onChange={e=>setForm({...form,api_token:e.target.value})} placeholder="eyJhbGci..." required /></div>
+            <div style={{display:"flex",gap:8}}>
+              <button className="btn btn-primary" type="submit" disabled={saving}>{saving?"Проверка токена...":"Добавить"}</button>
+              <button className="btn btn-ghost" type="button" onClick={()=>setShowForm(false)}>Отмена</button>
+            </div>
+          </form>
+        </div>
+      )}
+      {loading ? <div className="loader">Загрузка...</div> : error ? <div className="alert alert-error">{error}</div> : (
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Название</th><th>Добавлен</th><th></th></tr></thead>
+            <tbody>
+              {cabinets?.length === 0 && <tr><td colSpan={3} style={{textAlign:"center",color:"#889",padding:24}}>Нет кабинетов</td></tr>}
+              {cabinets?.map(c => (
+                <tr key={c.id}>
+                  <td style={{fontWeight:600}}>{c.name}</td>
+                  <td style={{color:"#889",fontSize:13}}>{c.created_at?.slice(0,10)}</td>
+                  <td><button className="btn btn-danger btn-sm" onClick={()=>deleteCabinet(c)}>Удалить</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Admin — Permissions ───────────────────────────────────────────────────────
+function AdminPermissions() {
+  const { data: users } = useApi(() => api.get("/api/admin/users"));
+  const { data: cabinets } = useApi(() => api.get("/api/admin/cabinets"));
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [perms, setPerms] = useState([]);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  async function loadPerms(userId) {
+    const data = await api.get(`/api/admin/users/${userId}/permissions`);
+    const map = {};
+    data.forEach(p => { map[p.cabinet_id] = p; });
+    setPerms(map);
+    setSelectedUser(userId);
+  }
+
+  function toggle(cabinetId, field) {
+    setPerms(prev => ({
+      ...prev,
+      [cabinetId]: { ...( prev[cabinetId] || {}), cabinet_id: cabinetId, [field]: !prev[cabinetId]?.[field] }
+    }));
+  }
+
+  async function save() {
+    setErr(""); setMsg("");
+    try {
+      const permissions = (cabinets || []).map(c => ({
+        cabinet_id: c.id,
+        can_view_orders: !!perms[c.id]?.can_view_orders,
+        can_view_stock: !!perms[c.id]?.can_view_stock,
+        can_view_ads: !!perms[c.id]?.can_view_ads,
+        can_view_finances: !!perms[c.id]?.can_view_finances,
+      }));
+      await api.put(`/api/admin/users/${selectedUser}/permissions`, { permissions });
+      setMsg("Права сохранены");
+    } catch (e) { setErr(e.message); }
+  }
+
+  return (
+    <>
+      <div className="page-title">Управление доступами</div>
+      <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+        <div style={{width:200}}>
+          <div style={{fontWeight:600,marginBottom:8,fontSize:14}}>Пользователь</div>
+          {(users || []).filter(u=>!u.is_admin).map(u => (
+            <div key={u.id} onClick={()=>loadPerms(u.id)}
+              style={{padding:"8px 12px",borderRadius:8,cursor:"pointer",marginBottom:4,
+                background:selectedUser===u.id?"#5b73e8":"#f0f2f5",
+                color:selectedUser===u.id?"#fff":"#445"}}>
+              {u.login} {!u.is_active && <span style={{fontSize:11,opacity:.6}}>(откл)</span>}
+            </div>
+          ))}
+          {(users||[]).filter(u=>!u.is_admin).length===0 && <div style={{color:"#889",fontSize:13}}>Нет пользователей-viewers</div>}
+        </div>
+
+        {selectedUser && cabinets && (
+          <div style={{flex:1}}>
+            {err && <div className="alert alert-error">{err}</div>}
+            {msg && <div className="alert alert-success">{msg}</div>}
+            <div className="table-wrap">
+              <table className="perm-table">
+                <thead>
+                  <tr>
+                    <th>Кабинет</th>
+                    <th style={{textAlign:"center"}}>📦 Заказы</th>
+                    <th style={{textAlign:"center"}}>🏭 Остатки</th>
+                    <th style={{textAlign:"center"}}>📢 РК</th>
+                    <th style={{textAlign:"center"}}>💰 Финансы</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cabinets.map(c => (
+                    <tr key={c.id}>
+                      <td>{c.name}</td>
+                      {["can_view_orders","can_view_stock","can_view_ads","can_view_finances"].map(f => (
+                        <td key={f} style={{textAlign:"center"}}>
+                          <input type="checkbox" className="perm-check"
+                            checked={!!perms[c.id]?.[f]}
+                            onChange={()=>toggle(c.id,f)} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{marginTop:12}}>
+              <button className="btn btn-primary" onClick={save}>Сохранить права</button>
+            </div>
+          </div>
+        )}
+        {!selectedUser && <div style={{flex:1,color:"#889",paddingTop:8}}>Выберите пользователя слева</div>}
+      </div>
+    </>
+  );
+}
+
+// ── App Shell ─────────────────────────────────────────────────────────────────
+function App() {
+  const [user, setUser] = useState(() => {
+    const token = localStorage.getItem("wb_token");
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp * 1000 < Date.now()) { localStorage.removeItem("wb_token"); return null; }
+      return { is_admin: payload.admin };
+    } catch { return null; }
+  });
+  const [page, setPage] = useState("dashboard");
+  const [selectedCabinet, setSelectedCabinet] = useState(null);
+
+  function logout() {
+    localStorage.removeItem("wb_token");
+    setUser(null);
+  }
+
+  function selectCabinet(c) {
+    setSelectedCabinet(c);
+    setPage("cabinet");
+  }
+
+  function navigate(p) {
+    setPage(p);
+    setSelectedCabinet(null);
+  }
+
+  if (!user) return <Login onLogin={setUser} />;
+
+  const navItems = [
+    { key: "dashboard", icon: "🏠", label: "Дашборд" },
+    ...(user.is_admin ? [
+      { key: "admin-cabinets", icon: "🏪", label: "Кабинеты" },
+      { key: "admin-users", icon: "👥", label: "Пользователи" },
+      { key: "admin-permissions", icon: "🔑", label: "Доступы" },
+    ] : []),
+  ];
+
+  return (
+    <div>
+      <div className="sidebar">
+        <div className="sidebar-logo">WB <span>Dashboard</span></div>
+        <nav className="sidebar-nav">
+          {navItems.map(n => (
+            <div key={n.key} className={`nav-item ${page===n.key||page==="cabinet"&&n.key==="dashboard"?"active":""}`}
+              onClick={() => navigate(n.key)}>
+              <span className="icon">{n.icon}</span>{n.label}
+            </div>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <div>{user.is_admin ? "👑 Admin" : "👤 Viewer"}</div>
+          <button onClick={logout}>Выйти</button>
+        </div>
+      </div>
+      <div className="main">
+        {page === "dashboard" && <Dashboard onSelectCabinet={selectCabinet} />}
+        {page === "cabinet" && selectedCabinet && <CabinetDetail cabinet={selectedCabinet} onBack={() => navigate("dashboard")} />}
+        {page === "admin-cabinets" && <AdminCabinets />}
+        {page === "admin-users" && <AdminUsers />}
+        {page === "admin-permissions" && <AdminPermissions />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
