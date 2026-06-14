@@ -38,7 +38,7 @@ async def _post(token: str, base: str, path: str, body: dict | list) -> dict | l
 # ── Token validation ──────────────────────────────────────────────────────────
 
 async def validate_token(token: str) -> bool:
-    """Returns True if token is valid, False on 401/403."""
+    """Returns True if token can reach WB API, False if clearly invalid."""
     from datetime import datetime, timedelta, timezone
     date_from = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
@@ -47,7 +47,10 @@ async def validate_token(token: str) -> bool:
     except WBApiError as e:
         if e.status in (401, 403):
             return False
-        raise
+        # Any other HTTP error (429, 5xx) — token format is OK, accept it
+        return True
+    except Exception:
+        return False
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────
