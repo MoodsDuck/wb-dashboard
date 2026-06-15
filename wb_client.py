@@ -185,30 +185,23 @@ async def get_ad_campaigns(token: str) -> list[dict]:
     if not campaigns:
         return []
 
-    # Fetch names via /adv/v1/advert for each campaign (max 50 per batch not available here)
-    # Use /api/advert/v2/adverts?statuses=4,7,9,11 which returns all at once
-    try:
-        data = await _get(token, _BASE_ADVERT, "/api/advert/v2/adverts", {
-            "statuses": "4,7,9,11",
-        })
-        adverts_list = []
-        if isinstance(data, dict):
-            adverts_list = data.get("adverts") or []
-        elif isinstance(data, list):
-            adverts_list = data
-        # Build name map
-        name_map = {}
-        for adv in adverts_list:
-            if isinstance(adv, dict) and adv.get("advertId"):
-                name_map[adv["advertId"]] = adv.get("name", "")
-        # Apply names
-        for c in campaigns:
-            c["name"] = name_map.get(c["id"]) or str(c["id"])
-    except WBApiError:
-        # Names unavailable, use IDs as names
-        for c in campaigns:
-            if not c["name"]:
-                c["name"] = str(c["id"])
+    # Fetch names by passing actual IDs (max 50 per batch)
+    name_map: dict = {}
+    all_ids = [c["id"] for c in campaigns]
+    for i in range(0, len(all_ids), 50):
+        batch = all_ids[i:i+50]
+        try:
+            data = await _get(token, _BASE_ADVERT, "/api/advert/v2/adverts", {
+                "ids": ",".join(str(x) for x in batch),
+            })
+            adverts_list = data if isinstance(data, list) else (data.get("adverts") or [] if isinstance(data, dict) else [])
+            for adv in adverts_list:
+                if isinstance(adv, dict) and adv.get("advertId"):
+                    name_map[adv["advertId"]] = adv.get("name", "")
+        except WBApiError:
+            pass
+    for c in campaigns:
+        c["name"] = name_map.get(c["id"]) or str(c["id"])
 
     return campaigns
 
