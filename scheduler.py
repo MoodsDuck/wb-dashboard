@@ -237,6 +237,11 @@ async def _fetch_finances(cabinet: dict) -> None:
     # Old API returns per-row detail: {rr_dt, retail_price_withdisc_rub, commission_percent, ...}
     db = await get_db()
     try:
+        # Clear existing data for this period before re-inserting to avoid accumulation
+        await db.execute(
+            "DELETE FROM finance_report WHERE cabinet_id=? AND date>=? AND date<=?",
+            (cabinet_id, date_from, date_to)
+        )
         for row in rows:
             # Detect which format based on keys
             if "reportId" in row:
@@ -267,11 +272,11 @@ async def _fetch_finances(cabinet: dict) -> None:
                 INSERT INTO finance_report (cabinet_id, date, revenue, commission, logistics, penalty, to_pay)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(cabinet_id, date) DO UPDATE SET
-                    revenue=revenue+excluded.revenue,
-                    commission=commission+excluded.commission,
-                    logistics=logistics+excluded.logistics,
-                    penalty=penalty+excluded.penalty,
-                    to_pay=to_pay+excluded.to_pay
+                    revenue=excluded.revenue,
+                    commission=excluded.commission,
+                    logistics=excluded.logistics,
+                    penalty=excluded.penalty,
+                    to_pay=excluded.to_pay
             """, (cabinet_id, date, revenue, commission, logistics, penalty, to_pay))
 
         await db.commit()

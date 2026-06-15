@@ -625,6 +625,18 @@ async def admin_force_sync(admin: dict = Depends(auth.require_admin)):
     return {"ok": True, "message": "Sync started"}
 
 
+@app.post("/api/admin/reset-finances")
+async def admin_reset_finances(admin: dict = Depends(auth.require_admin)):
+    """Clear all finance_report rows so next sync populates fresh data."""
+    db = await get_db()
+    try:
+        await db.execute("DELETE FROM finance_report")
+        await db.commit()
+    finally:
+        await db.close()
+    return {"ok": True, "message": "Finance data cleared"}
+
+
 @app.get("/api/admin/debug/{cabinet_id}")
 async def admin_debug(cabinet_id: int, section: str = "ads", st: int = 0, admin: dict = Depends(auth.require_admin), request: Request = None):
     """Debug: directly call WB API and return raw response for diagnosis."""
