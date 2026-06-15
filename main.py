@@ -286,22 +286,12 @@ async def get_finances(cabinet_id: int, date_from: str = "", date_to: str = "",
         if date_to:
             date_sql += " AND date<=?"
             params.append(date_to)
-
         cur = await db.execute(
-            f"SELECT date, date_to, revenue, commission, logistics, penalty, to_pay "
-            f"FROM finance_report WHERE cabinet_id=? AND report_type='weekly' {date_sql} ORDER BY date DESC",
-            params
-        )
-        weekly = [dict(r) for r in await cur.fetchall()]
-
-        cur2 = await db.execute(
             f"SELECT date, revenue, commission, logistics, penalty, to_pay "
             f"FROM finance_report WHERE cabinet_id=? AND report_type='daily' {date_sql} ORDER BY date DESC",
             params
         )
-        daily = [dict(r) for r in await cur2.fetchall()]
-
-        return {"weekly": weekly, "daily": daily}
+        return [dict(r) for r in await cur.fetchall()]
     finally:
         await db.close()
 
