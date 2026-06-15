@@ -10,9 +10,10 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-_BASE_STATISTICS = "https://statistics-api.wildberries.ru"
-_BASE_FINANCE    = "https://finance-api.wildberries.ru"
-_BASE_ADVERT     = "https://advert-api.wildberries.ru"
+_BASE_STATISTICS        = "https://statistics-api.wildberries.ru"
+_BASE_SELLER_ANALYTICS  = "https://seller-analytics-api.wildberries.ru"
+_BASE_FINANCE           = "https://finance-api.wildberries.ru"
+_BASE_ADVERT            = "https://advert-api.wildberries.ru"
 
 _MAX_RETRIES = 3
 
@@ -110,11 +111,12 @@ async def get_orders(token: str, date_from: str) -> list[dict]:
 async def get_stocks(token: str) -> list[dict]:
     """
     Creates a warehouse_remains report task, polls until done, returns results.
-    Token category: Аналитика.
+    Uses seller-analytics-api (Аналитика token category).
     """
     # Step 1: create task
     try:
-        resp = await _get(token, _BASE_STATISTICS, "/api/v1/warehouse_remains", {})
+        resp = await _get(token, _BASE_SELLER_ANALYTICS, "/api/v1/warehouse_remains",
+                          {"groupBySize": "true", "groupByBarcode": "true"})
     except WBApiError as e:
         logger.error("warehouse_remains create task error: %s", e)
         return []
@@ -127,7 +129,7 @@ async def get_stocks(token: str) -> list[dict]:
     for _ in range(12):
         await asyncio.sleep(5)
         try:
-            status_resp = await _get(token, _BASE_STATISTICS,
+            status_resp = await _get(token, _BASE_SELLER_ANALYTICS,
                                      f"/api/v1/warehouse_remains/tasks/{task_id}/status", {})
         except WBApiError:
             break
@@ -141,7 +143,7 @@ async def get_stocks(token: str) -> list[dict]:
 
     # Step 3: download
     try:
-        data = await _get(token, _BASE_STATISTICS,
+        data = await _get(token, _BASE_SELLER_ANALYTICS,
                           f"/api/v1/warehouse_remains/tasks/{task_id}/download", {})
     except WBApiError as e:
         logger.error("warehouse_remains download error: %s", e)
@@ -153,11 +155,10 @@ async def get_stocks(token: str) -> list[dict]:
 
 async def get_ad_campaigns(token: str) -> list[dict]:
     """
-    Get all campaigns (active, paused, finished, ready) with names.
-    Step 1: /adv/v1/promotion/count → list of IDs grouped by status
-    Step 2: /api/advert/v2/adverts?ids=... → full info with names
+    Get all campaigns with statuses 4/7/9/11 (ready/finished/active/paused).
+    Step 1: /adv/v1/promotion/count → campaign IDs grouped by status
+    Step 2: /adv/v1/advert?id=... → campaign name (one call per id, cached)
     """
-    # Get IDs from count endpoint
     try:
         count_data = await _get(token, _BASE_ADVERT, "/adv/v1/promotion/count")
     except WBApiError:
@@ -165,39 +166,44 @@ async def get_ad_campaigns(token: str) -> list[dict]:
     if not isinstance(count_data, dict):
         return []
 
-    all_ids = []
+    campaigns = []
     for status_group in count_data.get("adverts", []) or []:
         status = status_group.get("status")
-        # Only include active (9), paused (11), ready (4), finished (7)
-        if status in (4, 7, 9, 11):
-            for adv in status_group.get("advert_list", []) or []:
-                cid = adv.get("advertId")
-                if cid:
-                    all_ids.append(cid)
+        if status not in (4, 7, 9, 11):
+            continue
+        for adv in status_group.get("advert_list", []) or []:
+            cid = adv.get("advertId")
+            if cid:
+                campaigns.append({"id": cid, "name": None, "status": status})
 
-    if not all_ids:
+    if not campaigns:
         return []
 
-    # Get full campaign info (names etc) in batches of 50
-    campaigns = []
-    for i in range(0, len(all_ids), 50):
-        batch_ids = all_ids[i:i+50]
-        try:
-            data = await _get(token, _BASE_ADVERT, "/api/advert/v2/adverts", {
-                "ids": ",".join(str(x) for x in batch_ids),
-            })
-        except WBApiError:
-            # Fallback: add IDs without names
-            for cid in batch_ids:
-                campaigns.append({"id": cid, "name": str(cid), "status": None})
-            continue
-        adverts = data.get("adverts", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
-        for adv in adverts or []:
-            campaigns.append({
-                "id": adv.get("advertId"),
-                "name": adv.get("name", str(adv.get("advertId", ""))),
-                "status": adv.get("status"),
-            })
+    # Fetch names via /adv/v1/advert for each campaign (max 50 per batch not available here)
+    # Use /api/advert/v2/adverts?statuses=4,7,9,11 which returns all at once
+    try:
+        data = await _get(token, _BASE_ADVERT, "/api/advert/v2/adverts", {
+            "statuses": "4,7,9,11",
+        })
+        adverts_list = []
+        if isinstance(data, dict):
+            adverts_list = data.get("adverts") or []
+        elif isinstance(data, list):
+            adverts_list = data
+        # Build name map
+        name_map = {}
+        for adv in adverts_list:
+            if isinstance(adv, dict) and adv.get("advertId"):
+                name_map[adv["advertId"]] = adv.get("name", "")
+        # Apply names
+        for c in campaigns:
+            c["name"] = name_map.get(c["id"]) or str(c["id"])
+    except WBApiError:
+        # Names unavailable, use IDs as names
+        for c in campaigns:
+            if not c["name"]:
+                c["name"] = str(c["id"])
+
     return campaigns
 
 
