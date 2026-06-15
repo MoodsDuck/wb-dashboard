@@ -225,7 +225,7 @@ async def _fetch_finances(cabinet: dict) -> None:
     cabinet_id = cabinet["id"]
     token = cabinet["api_token"]
     date_to = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    date_from = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    date_from = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
 
     weekly = await wb_client.get_finance_weekly(token, date_from, date_to)
 
