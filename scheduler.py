@@ -78,12 +78,17 @@ async def _fetch_stocks(cabinet: dict) -> None:
     db_bc = await get_db()
     try:
         cur = await db_bc.execute(
-            "SELECT DISTINCT barcode FROM orders_cache WHERE cabinet_id=? AND barcode IS NOT NULL",
+            """SELECT DISTINCT barcode, article, nm_id, subject
+               FROM orders_cache
+               WHERE cabinet_id=? AND barcode IS NOT NULL""",
             (cabinet_id,)
         )
-        barcodes = [r["barcode"] for r in await cur.fetchall()]
+        barcode_rows = await cur.fetchall()
     finally:
         await db_bc.close()
+
+    barcode_meta = {r["barcode"]: dict(r) for r in barcode_rows}
+    barcodes = list(barcode_meta.keys())
 
     try:
         fbs_stocks = await wb_client.get_fbs_stocks(token, barcodes)
@@ -112,11 +117,15 @@ async def _fetch_stocks(cabinet: dict) -> None:
                 barcode = s.get("barcode")
                 qty = s.get("amount", 0)
                 wh_name = s.get("warehouseName") or "FBS"
+                meta = barcode_meta.get(barcode, {})
+                article = meta.get("article") or barcode
+                nm_id = meta.get("nm_id")
+                name = meta.get("subject") or "FBS товар"
                 await db.execute("""
                     INSERT OR IGNORE INTO stock_cache
                         (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (cabinet_id, checked_at, None, barcode, "FBS склад", qty, wh_name))
+                """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name + " (FBS)"))
                 continue
 
             # warehouse_remains FBO row:
