@@ -896,16 +896,21 @@ function FinancesTab({id,df,dt}){
           ))}
         </div>
       )}
-      <DataTable title="Ежедневный финансовый отчёт" count={`${all.length} дней`} empty="Нет финансовых данных"
-        head={['Дата','Выручка','К выплате','Комиссия','Логистика','Штрафы']}
-        rows={all.map(r=>[
-          <span className="muted">{fmt.d(r.date)}</span>,
-          <span className="num">{fmt.r(r.revenue)}</span>,
-          <span className="num semi k-ok">{fmt.r(r.to_pay)}</span>,
-          <span className="num">{fmt.r(r.commission)}</span>,
-          <span className="num">{fmt.r(r.logistics)}</span>,
-          <span className="num" style={{color:r.penalty>0?'var(--er)':'inherit'}}>{fmt.r(r.penalty)}</span>,
-        ])}/>
+      <DataTable title="Финансовые отчёты WB" count={`${all.length} периодов`} empty="Нет финансовых данных — нажмите «Обновить данные»"
+        head={['Период','Выручка','К выплате','Маржа','Комиссия WB','Логистика','Штрафы']}
+        rows={all.map(r=>{
+          const margin=r.revenue>0?Math.round(r.to_pay/r.revenue*100):0;
+          const period=r.date_to&&r.date_to!==r.date?`${fmt.d(r.date)} — ${fmt.d(r.date_to)}`:fmt.d(r.date);
+          return[
+            <span className="muted" style={{fontSize:11}}>{period}</span>,
+            <span className="num">{fmt.r(r.revenue)}</span>,
+            <span className="num semi k-ok">{fmt.r(r.to_pay)}</span>,
+            <span className={`num semi ${margin<50?'k-wa':'k-ok'}`}>{margin}%</span>,
+            <span className="num">{fmt.r(r.commission)}</span>,
+            <span className="num">{fmt.r(r.logistics)}</span>,
+            <span className="num" style={{color:r.penalty>0?'var(--er)':'inherit'}}>{fmt.r(r.penalty)}</span>,
+          ];
+        })}/>
     </div>
   );
 }

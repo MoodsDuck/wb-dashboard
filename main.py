@@ -67,14 +67,21 @@ async def _ensure_admin() -> None:
     try:
         cur = await db.execute("SELECT id FROM users WHERE login=?", (ADMIN_LOGIN,))
         row = await cur.fetchone()
+        hashed = auth.hash_password(ADMIN_PASSWORD)
         if not row:
-            hashed = auth.hash_password(ADMIN_PASSWORD)
             await db.execute(
                 "INSERT INTO users (login, password_hash, is_admin) VALUES (?, ?, 1)",
                 (ADMIN_LOGIN, hashed),
             )
-            await db.commit()
             logger.info("Admin account created: %s", ADMIN_LOGIN)
+        else:
+            # Always sync password from env so .env.amvera changes take effect
+            await db.execute(
+                "UPDATE users SET password_hash=?, is_admin=1 WHERE login=?",
+                (hashed, ADMIN_LOGIN),
+            )
+            logger.info("Admin password synced from env: %s", ADMIN_LOGIN)
+        await db.commit()
     finally:
         await db.close()
 
@@ -286,10 +293,19 @@ async def get_finances(cabinet_id: int, date_from: str = "", date_to: str = "",
         if date_to:
             date_sql += " AND date<=?"
             params.append(date_to)
+        # Filter by overlap: report period overlaps with [date_from, date_to]
+        overlap_sql = ""
+        overlap_params: list = [cabinet_id]
+        if date_from:
+            overlap_sql += " AND (date_to IS NULL OR date_to>=?)"
+            overlap_params.append(date_from)
+        if date_to:
+            overlap_sql += " AND date<=?"
+            overlap_params.append(date_to)
         cur = await db.execute(
-            f"SELECT date, revenue, commission, logistics, penalty, to_pay "
-            f"FROM finance_report WHERE cabinet_id=? AND report_type='daily' {date_sql} ORDER BY date DESC",
-            params
+            f"SELECT date, date_to, revenue, commission, logistics, penalty, to_pay "
+            f"FROM finance_report WHERE cabinet_id=? AND report_type='weekly' {overlap_sql} ORDER BY date DESC",
+            overlap_params
         )
         return [dict(r) for r in await cur.fetchall()]
     finally:

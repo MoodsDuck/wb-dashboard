@@ -227,27 +227,36 @@ async def _fetch_finances(cabinet: dict) -> None:
     date_to = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     date_from = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
 
-    daily = await wb_client.get_finance_daily(token, date_from, date_to)
+    weekly = await wb_client.get_finance_weekly(token, date_from, date_to)
 
     db = await get_db()
     try:
-        # Clear period before re-inserting to avoid accumulation
+        # Clear period before re-inserting
         await db.execute(
             "DELETE FROM finance_report WHERE cabinet_id=? AND date>=? AND date<=?",
             (cabinet_id, date_from, date_to)
         )
-        for row in daily:
+        for row in weekly:
+            date = (row.get("dateFrom") or "")[:10]
+            date_to_w = (row.get("dateTo") or "")[:10]
+            if not date:
+                continue
+            revenue = float(row.get("retailAmountSum") or 0)
+            logistics = float(row.get("deliveryServiceSum") or 0)
+            penalty = float(row.get("penaltySum") or 0)
+            to_pay = float(row.get("forPaySum") or 0)
+            commission = max(0.0, revenue - to_pay - logistics - penalty)
             await db.execute("""
                 INSERT INTO finance_report
-                    (cabinet_id, date, report_type, revenue, commission, logistics, penalty, to_pay)
-                VALUES (?, ?, 'daily', ?, ?, ?, ?, ?)
+                    (cabinet_id, date, report_type, date_to, revenue, commission, logistics, penalty, to_pay)
+                VALUES (?, ?, 'weekly', ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(cabinet_id, date, report_type) DO UPDATE SET
-                    revenue=excluded.revenue, commission=excluded.commission,
-                    logistics=excluded.logistics, penalty=excluded.penalty, to_pay=excluded.to_pay
-            """, (cabinet_id, row["date"], row["revenue"], row["commission"],
-                  row["logistics"], row["penalty"], row["to_pay"]))
+                    date_to=excluded.date_to, revenue=excluded.revenue,
+                    commission=excluded.commission, logistics=excluded.logistics,
+                    penalty=excluded.penalty, to_pay=excluded.to_pay
+            """, (cabinet_id, date, date_to_w, revenue, commission, logistics, penalty, to_pay))
         await db.commit()
-        logger.info("[cabinet %d] finances synced: %d daily rows", cabinet_id, len(daily))
+        logger.info("[cabinet %d] finances synced: %d weekly reports", cabinet_id, len(weekly))
     finally:
         await db.close()
 
