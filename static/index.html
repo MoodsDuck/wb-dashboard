@@ -716,6 +716,104 @@ function StockTab({id}){
   );
 }
 
+/* ── Products Tab ── */
+function ProductsTab({id,df,dt}){
+  const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/products-report?date_from=${df}&date_to=${dt}`),[id,df,dt]);
+  const [search,setSearch]=useState('');
+  if(loading)return<Loader/>;
+  if(error)return<Err msg={error}/>;
+  const dates=(data?.dates)||[];
+  const items=(data?.items)||[];
+  const filtered=search?items.filter(r=>(r.article||'').toLowerCase().includes(search.toLowerCase())||(r.subject||'').toLowerCase().includes(search.toLowerCase())):items;
+
+  // KPI
+  const totalSKU=new Set(items.map(r=>r.article)).size;
+  const totalSales=items.reduce((s,r)=>s+r.total_sales,0);
+  const totalRev=items.reduce((s,r)=>s+r.total_revenue,0);
+  const totalStock=items.reduce((s,r)=>s+r.stock,0);
+
+  // Color for daily cell
+  function cellColor(n){
+    if(!n)return{background:'#f8fafc',color:'#94a3b8'};
+    if(n<=2)return{background:'#fef9c3',color:'#92400e'};
+    return{background:'#dcfce7',color:'#166534'};
+  }
+  function stockCol(qty){
+    if(qty===0)return'#dc2626';
+    if(qty<10)return'#d97706';
+    return'#059669';
+  }
+
+  // Totals per date
+  const dateTotals={};
+  dates.forEach(d=>{dateTotals[d]=filtered.reduce((s,r)=>s+(r.sales_by_date[d]||0),0);});
+
+  return(
+    <div>
+      <div className="kpi-row">
+        <div className="kpi-card"><div className="kpi-v">{totalSKU}</div><div className="kpi-l">SKU артикулов</div></div>
+        <div className="kpi-card"><div className="kpi-v">{totalSales}</div><div className="kpi-l">Всего продаж</div></div>
+        <div className="kpi-card"><div className="kpi-v">{totalRev.toLocaleString('ru')} ₽</div><div className="kpi-l">Выручка</div></div>
+        <div className="kpi-card"><div className="kpi-v">{totalStock}</div><div className="kpi-l">Остатки сейчас</div></div>
+      </div>
+      <div style={{marginBottom:12}}>
+        <input className="din" placeholder="Поиск по артикулу или предмету..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:280}}/>
+      </div>
+      {!filtered.length?<div className="chart-empty">Нет данных — нажмите «Обновить данные»</div>:(
+        <div style={{overflowX:'auto'}}>
+          <table style={{borderCollapse:'collapse',fontSize:12,whiteSpace:'nowrap',width:'100%'}}>
+            <thead>
+              <tr style={{background:'#f1f5f9',position:'sticky',top:0}}>
+                <th style={th}>Предмет</th>
+                <th style={th}>Артикул</th>
+                <th style={th}>nmId</th>
+                <th style={th}>Размер</th>
+                <th style={th}>Баркод</th>
+                {dates.map(d=><th key={d} style={{...th,minWidth:52,background:'#e0f2fe',color:'#0369a1'}}>{d.slice(5)}</th>)}
+                <th style={{...th,background:'#f0fdf4',color:'#166534'}}>Итого</th>
+                <th style={{...th,background:'#fdf4ff',color:'#7c3aed'}}>РК ₽</th>
+                <th style={{...th,background:'#fff7ed',color:'#c2410c'}}>Скидка</th>
+                <th style={{...th,background:'#f0f9ff',color:'#0369a1'}}>Остаток</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((r,i)=>(
+                <tr key={i} style={{borderBottom:'1px solid #e2e8f0'}}>
+                  <td style={td}>{r.subject||'—'}</td>
+                  <td style={{...td,fontWeight:600,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis'}}>{r.article}</td>
+                  <td style={{...td,color:'#64748b'}}>{r.nm_id}</td>
+                  <td style={{...td,textAlign:'center'}}>{r.size||'—'}</td>
+                  <td style={{...td,color:'#94a3b8',fontSize:11}}>{r.barcode||'—'}</td>
+                  {dates.map(d=>{
+                    const n=r.sales_by_date[d]||0;
+                    return<td key={d} style={{...td,textAlign:'center',...cellColor(n)}}>{n||''}</td>;
+                  })}
+                  <td style={{...td,textAlign:'center',fontWeight:700,background:'#f0fdf4',color:'#166534'}}>{r.total_sales}</td>
+                  <td style={{...td,textAlign:'center',color:'#7c3aed'}}>{r.rk_spend>0?r.rk_spend.toFixed(0):'—'}</td>
+                  <td style={{...td,textAlign:'center'}}>{r.avg_discount>0?r.avg_discount+'%':'—'}</td>
+                  <td style={{...td,textAlign:'center',fontWeight:700,color:stockCol(r.stock)}}>{r.stock}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{background:'#f8fafc',fontWeight:700,borderTop:'2px solid #cbd5e1'}}>
+                <td style={td} colSpan={5}>ИТОГО</td>
+                {dates.map(d=><td key={d} style={{...td,textAlign:'center',background:'#e0f2fe'}}>{dateTotals[d]||''}</td>)}
+                <td style={{...td,textAlign:'center',background:'#f0fdf4',color:'#166534'}}>{filtered.reduce((s,r)=>s+r.total_sales,0)}</td>
+                <td style={{...td,textAlign:'center',color:'#7c3aed'}}>{(data?.total_rk||0).toFixed(0)}</td>
+                <td style={td}>—</td>
+                <td style={{...td,textAlign:'center'}}>{filtered.reduce((s,r)=>s+r.stock,0)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+const th={padding:'6px 10px',textAlign:'left',fontWeight:600,fontSize:11,border:'1px solid #e2e8f0',whiteSpace:'nowrap'};
+const td={padding:'5px 8px',border:'1px solid #f1f5f9'};
+
 /* ── Ads Tab ── */
 function AdsTab({id,df,dt}){
   const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/ads?date_from=${df}&date_to=${dt}`),[id,df,dt]);
@@ -822,6 +920,7 @@ function CabinetDetail({cabinet,onBack}){
   const tabs=[
     perms.orders&&{id:'analytics',icon:'📊',label:'Аналитика'},
     perms.orders&&{id:'orders',icon:'📦',label:'Заказы'},
+    perms.orders&&{id:'products',icon:'🏷',label:'Товары'},
     perms.stock&&{id:'stock',icon:'🏭',label:'Остатки'},
     perms.ads&&{id:'ads',icon:'📣',label:'Реклама'},
     perms.finances&&{id:'finances',icon:'💰',label:'Финансы'},
@@ -850,6 +949,7 @@ function CabinetDetail({cabinet,onBack}){
       </div>
       {tab==='analytics'&&<AnalyticsTab id={cabinet.id} df={df} dt={dt}/>}
       {tab==='orders'&&<OrdersTab id={cabinet.id} df={df} dt={dt}/>}
+      {tab==='products'&&<ProductsTab id={cabinet.id} df={df} dt={dt}/>}
       {tab==='stock'&&<StockTab id={cabinet.id}/>}
       {tab==='ads'&&<AdsTab id={cabinet.id} df={df} dt={dt}/>}
       {tab==='finances'&&<FinancesTab id={cabinet.id} df={df} dt={dt}/>}

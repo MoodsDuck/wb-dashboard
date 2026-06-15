@@ -45,13 +45,17 @@ async def _fetch_orders(cabinet: dict) -> None:
             price = o.get("finishedPrice") or o.get("priceWithDisc") or 0
             await db.execute("""
                 INSERT OR IGNORE INTO orders_cache
-                    (cabinet_id, order_id, date, article, nm_id, status, price, region)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (cabinet_id, order_id, date, article, nm_id, status, price, region,
+                     barcode, size, subject, discount_percent)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 cabinet_id, order_id, created,
                 o.get("supplierArticle"), o.get("nmId"),
-                status, price,
-                o.get("regionName"),
+                status, price, o.get("regionName"),
+                o.get("barcode"),
+                o.get("techSize"),
+                o.get("subject") or o.get("category"),
+                o.get("discountPercent", 0) or 0,
             ))
         await db.commit()
         logger.info("[cabinet %d] orders synced: %d", cabinet_id, len(orders))

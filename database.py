@@ -88,6 +88,17 @@ async def init_db() -> None:
                 UNIQUE(cabinet_id, date)
             );
         """)
+        # Migrations: add columns if missing (safe to re-run)
+        for migration in [
+            "ALTER TABLE orders_cache ADD COLUMN barcode TEXT",
+            "ALTER TABLE orders_cache ADD COLUMN size TEXT",
+            "ALTER TABLE orders_cache ADD COLUMN subject TEXT",
+            "ALTER TABLE orders_cache ADD COLUMN discount_percent REAL DEFAULT 0",
+        ]:
+            try:
+                await db.execute(migration)
+            except Exception:
+                pass  # column already exists
         await db.commit()
 
 

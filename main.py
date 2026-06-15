@@ -350,6 +350,114 @@ async def get_analytics(cabinet_id: int, date_from: str = "", date_to: str = "",
         await db.close()
 
 
+# ── Products report ──────────────────────────────────────────────────────────
+
+@app.get("/api/cabinets/{cabinet_id}/products-report")
+async def get_products_report(cabinet_id: int, date_from: str = "", date_to: str = "",
+                               user: dict = Depends(auth.get_current_user)):
+    await _assert_cabinet_permission(user, cabinet_id, "orders")
+    db = await get_db()
+    try:
+        # Build date filter
+        params: list = [cabinet_id]
+        date_sql = ""
+        if date_from:
+            date_sql += " AND date>=?"
+            params.append(date_from)
+        if date_to:
+            date_sql += " AND date<=?"
+            params.append(date_to)
+
+        # Daily sales per (article, nm_id, barcode, size)
+        cur = await db.execute(f"""
+            SELECT article, nm_id, barcode, size, subject,
+                   date, COUNT(*) as cnt,
+                   SUM(price) as revenue,
+                   AVG(discount_percent) as avg_disc
+            FROM orders_cache
+            WHERE cabinet_id=? {date_sql}
+            GROUP BY article, nm_id, barcode, size, date
+            ORDER BY article, size, date
+        """, params)
+        rows = [dict(r) for r in await cur.fetchall()]
+
+        # Latest stock per nm_id
+        cur2 = await db.execute("""
+            SELECT nm_id, SUM(quantity) as qty
+            FROM stock_cache
+            WHERE cabinet_id=?
+              AND checked_at=(SELECT MAX(checked_at) FROM stock_cache WHERE cabinet_id=?)
+            GROUP BY nm_id
+        """, (cabinet_id, cabinet_id))
+        stock_map = {r["nm_id"]: r["qty"] for r in await cur2.fetchall()}
+
+        # Total ad spend for the period
+        ad_params: list = [cabinet_id]
+        ad_date_sql = ""
+        if date_from:
+            ad_date_sql += " AND date>=?"
+            ad_params.append(date_from)
+        if date_to:
+            ad_date_sql += " AND date<=?"
+            ad_params.append(date_to)
+        cur3 = await db.execute(
+            f"SELECT COALESCE(SUM(spend),0) as total FROM ad_stats WHERE cabinet_id=? {ad_date_sql}",
+            ad_params
+        )
+        total_rk = (await cur3.fetchone())["total"] or 0.0
+
+    finally:
+        await db.close()
+
+    # Group by (article, nm_id, barcode, size)
+    from collections import defaultdict
+    items_map: dict = {}
+    all_dates: set = set()
+
+    for r in rows:
+        key = (r["article"] or "", r["nm_id"] or 0, r["barcode"] or "", r["size"] or "")
+        if key not in items_map:
+            items_map[key] = {
+                "subject": r["subject"] or "",
+                "article": r["article"] or "",
+                "nm_id": r["nm_id"],
+                "barcode": r["barcode"] or "",
+                "size": r["size"] or "",
+                "sales_by_date": {},
+                "total_sales": 0,
+                "total_revenue": 0.0,
+                "avg_discount": 0.0,
+                "_disc_samples": [],
+            }
+        item = items_map[key]
+        d = r["date"]
+        all_dates.add(d)
+        item["sales_by_date"][d] = item["sales_by_date"].get(d, 0) + r["cnt"]
+        item["total_sales"] += r["cnt"]
+        item["total_revenue"] += r["revenue"] or 0
+        if r["avg_disc"]:
+            item["_disc_samples"].append(r["avg_disc"])
+
+    dates_sorted = sorted(all_dates)
+    sku_count = max(len(items_map), 1)
+    rk_per_sku = round(total_rk / sku_count, 2)
+
+    result_items = []
+    for key, item in items_map.items():
+        _, nm_id, _, _ = key
+        item["stock"] = stock_map.get(nm_id, 0)
+        item["rk_spend"] = rk_per_sku
+        samples = item.pop("_disc_samples")
+        item["avg_discount"] = round(sum(samples) / len(samples), 1) if samples else 0
+        item["total_revenue"] = round(item["total_revenue"], 2)
+        result_items.append(item)
+
+    # Sort by subject, article, size
+    result_items.sort(key=lambda x: (x["subject"], x["article"], x["size"]))
+
+    return {"dates": dates_sorted, "items": result_items, "total_rk": round(total_rk, 2)}
+
+
 # ── Admin — Users ─────────────────────────────────────────────────────────────
 
 @app.get("/api/admin/users")
