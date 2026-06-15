@@ -125,8 +125,9 @@ async def get_stocks(token: str) -> list[dict]:
         logger.error("warehouse_remains: no taskId in response: %s", resp)
         return []
 
-    # Step 2: poll status (max 60s)
-    for _ in range(12):
+    # Step 2: poll status (max 120s)
+    status = None
+    for _ in range(24):
         await asyncio.sleep(5)
         try:
             status_resp = await _get(token, _BASE_SELLER_ANALYTICS,
@@ -135,10 +136,11 @@ async def get_stocks(token: str) -> list[dict]:
             break
         status = status_resp.get("data", {}).get("status") if isinstance(status_resp, dict) else None
         logger.debug("warehouse_remains task %s status: %s", task_id, status)
-        if status == "done":
+        if status in ("done", "complete", "completed", "success"):
             break
+        logger.debug("warehouse_remains task %s status=%s, waiting...", task_id, status)
     else:
-        logger.error("warehouse_remains task %s timed out", task_id)
+        logger.error("warehouse_remains task %s timed out (last status=%s)", task_id, status)
         return []
 
     # Step 3: download

@@ -652,8 +652,19 @@ async def admin_debug(cabinet_id: int, section: str = "ads", admin: dict = Depen
             })
             return {"raw": data}
         elif section == "stocks":
-            data = await wb_client._get(token, wb_client._BASE_STATISTICS, "/api/v1/warehouse_remains", {})
-            return {"raw": data}
+            # Step 1: create task on seller-analytics-api
+            data = await wb_client._get(token, wb_client._BASE_SELLER_ANALYTICS,
+                                        "/api/v1/warehouse_remains",
+                                        {"groupBySize": "true", "groupByBarcode": "true"})
+            task_id = data.get("data", {}).get("taskId") if isinstance(data, dict) else None
+            if not task_id:
+                return {"step": "create_task", "raw": data, "error": "no taskId"}
+            # Step 2: check status once (don't wait full 120s in debug)
+            import asyncio
+            await asyncio.sleep(5)
+            status_resp = await wb_client._get(token, wb_client._BASE_SELLER_ANALYTICS,
+                                               f"/api/v1/warehouse_remains/tasks/{task_id}/status", {})
+            return {"step": "status_check", "task_id": task_id, "status_raw": status_resp}
         elif section == "finance":
             data = await wb_client._post(token, wb_client._BASE_FINANCE, "/api/finance/v1/sales-reports/list", {
                 "dateFrom": week_ago, "dateTo": today
