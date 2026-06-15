@@ -2,18 +2,20 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import auth
 import wb_client
-from config import ADMIN_LOGIN, ADMIN_PASSWORD
+from config import ADMIN_LOGIN, ADMIN_PASSWORD, ALLOWED_ORIGIN
 from database import get_db, init_db
 from scheduler import start_scheduler, sync_all_cabinets
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -24,12 +26,42 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="WB Dashboard", lifespan=lifespan)
+app = FastAPI(title="WB Dashboard", lifespan=lifespan, docs_url=None, redoc_url=None)
+
+# ── CORS ──────────────────────────────────────────────────────────────────────
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[ALLOWED_ORIGIN, "http://localhost:8000"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
 
 
+# ── Security headers ──────────────────────────────────────────────────────────
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self';"
+    )
+    return response
+
+
+# ── Admin bootstrap ───────────────────────────────────────────────────────────
 async def _ensure_admin() -> None:
     if not ADMIN_PASSWORD:
-        logging.warning("ADMIN_PASSWORD not set — admin account not created")
+        logger.warning("ADMIN_PASSWORD not set — admin account not created")
         return
     db = await get_db()
     try:
@@ -42,7 +74,7 @@ async def _ensure_admin() -> None:
                 (ADMIN_LOGIN, hashed),
             )
             await db.commit()
-            logging.info("Admin account created: %s", ADMIN_LOGIN)
+            logger.info("Admin account created: %s", ADMIN_LOGIN)
     finally:
         await db.close()
 
@@ -50,17 +82,17 @@ async def _ensure_admin() -> None:
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
-    login: str
-    password: str
+    login: str = Field(..., min_length=1, max_length=64)
+    password: str = Field(..., min_length=1, max_length=128)
 
 class CreateUserRequest(BaseModel):
-    login: str
-    password: str
+    login: str = Field(..., min_length=3, max_length=64)
+    password: str = Field(..., min_length=8, max_length=128)
     is_admin: bool = False
 
 class CreateCabinetRequest(BaseModel):
-    name: str
-    api_token: str
+    name: str = Field(..., min_length=1, max_length=128)
+    api_token: str = Field(..., min_length=10, max_length=512)
 
 class PermissionsRequest(BaseModel):
     cabinet_id: int
@@ -76,7 +108,10 @@ class SetAllPermissionsRequest(BaseModel):
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @app.post("/api/auth/login")
-async def login(body: LoginRequest):
+async def login(body: LoginRequest, request: Request):
+    client_ip = request.headers.get("X-Forwarded-For", request.client.host or "").split(",")[0].strip()
+    auth.check_rate_limit(client_ip)
+
     db = await get_db()
     try:
         cur = await db.execute(
@@ -87,11 +122,13 @@ async def login(body: LoginRequest):
     finally:
         await db.close()
 
-    if not row or not row["is_active"]:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not auth.verify_password(body.password, row["password_hash"]):
+    if not row or not row["is_active"] or not auth.verify_password(body.password, row["password_hash"]):
+        auth.record_failed_login(client_ip)
+        logger.warning("Failed login for '%s' from %s", body.login, client_ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
+    auth.clear_failed_logins(client_ip)
+    logger.info("Login success: user=%s ip=%s", body.login, client_ip)
     token = auth.create_token(row["id"], bool(row["is_admin"]))
     return {"token": token, "is_admin": bool(row["is_admin"])}
 
@@ -130,13 +167,17 @@ async def list_cabinets(user: dict = Depends(auth.get_current_user)):
 
 
 async def _assert_cabinet_permission(user: dict, cabinet_id: int, perm: str) -> None:
-    """Raises 403/404 if user has no access to cabinet or lacks the permission."""
     if user["is_admin"]:
         return
+    col_map = {
+        "orders": "can_view_orders",
+        "stock": "can_view_stock",
+        "ads": "can_view_ads",
+        "finances": "can_view_finances",
+    }
+    col = col_map[perm]
     db = await get_db()
     try:
-        col = {"orders": "can_view_orders", "stock": "can_view_stock",
-               "ads": "can_view_ads", "finances": "can_view_finances"}[perm]
         cur = await db.execute(
             f"SELECT {col} FROM user_permissions WHERE user_id=? AND cabinet_id=?",
             (user["id"], cabinet_id),
@@ -166,8 +207,7 @@ async def get_orders(cabinet_id: int, date_from: str = "", date_to: str = "",
             params.append(date_to)
         query += " ORDER BY date DESC"
         cur = await db.execute(query, params)
-        rows = await cur.fetchall()
-        return [dict(r) for r in rows]
+        return [dict(r) for r in await cur.fetchall()]
     finally:
         await db.close()
 
@@ -177,7 +217,6 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
     await _assert_cabinet_permission(user, cabinet_id, "stock")
     db = await get_db()
     try:
-        # Latest snapshot
         cur = await db.execute("""
             SELECT s.nm_id, s.article, s.name, s.warehouse,
                    SUM(s.quantity) as quantity,
@@ -190,7 +229,6 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
         """, (cabinet_id, cabinet_id))
         rows = await cur.fetchall()
 
-        # Calculate avg daily sales (last 7 days)
         from datetime import datetime, timedelta, timezone
         since = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
         cur2 = await db.execute("""
@@ -206,14 +244,7 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
             qty = r["quantity"]
             avg = sales.get(r["nm_id"], 0)
             days_left = round(qty / avg, 1) if avg > 0 else None
-            if days_left is None:
-                alert = "grey"
-            elif days_left < 7:
-                alert = "red"
-            elif days_left < 14:
-                alert = "yellow"
-            else:
-                alert = "green"
+            alert = "grey" if days_left is None else "red" if days_left < 7 else "yellow" if days_left < 14 else "green"
             result.append({**dict(r), "days_left": days_left, "alert": alert})
         return result
     finally:
@@ -226,10 +257,7 @@ async def get_ads(cabinet_id: int, date_from: str = "", date_to: str = "",
     await _assert_cabinet_permission(user, cabinet_id, "ads")
     db = await get_db()
     try:
-        query = """
-            SELECT date, campaign_id, campaign_name, spend, views, clicks, orders
-            FROM ad_stats WHERE cabinet_id=?
-        """
+        query = "SELECT date, campaign_id, campaign_name, spend, views, clicks, orders FROM ad_stats WHERE cabinet_id=?"
         params: list = [cabinet_id]
         if date_from:
             query += " AND date>=?"
@@ -250,10 +278,7 @@ async def get_finances(cabinet_id: int, date_from: str = "", date_to: str = "",
     await _assert_cabinet_permission(user, cabinet_id, "finances")
     db = await get_db()
     try:
-        query = """
-            SELECT date, revenue, commission, logistics, penalty, to_pay
-            FROM finance_report WHERE cabinet_id=?
-        """
+        query = "SELECT date, revenue, commission, logistics, penalty, to_pay FROM finance_report WHERE cabinet_id=?"
         params: list = [cabinet_id]
         if date_from:
             query += " AND date>=?"
@@ -274,9 +299,7 @@ async def get_finances(cabinet_id: int, date_from: str = "", date_to: str = "",
 async def admin_list_users(admin: dict = Depends(auth.require_admin)):
     db = await get_db()
     try:
-        cur = await db.execute(
-            "SELECT id, login, is_admin, is_active, created_at FROM users ORDER BY id"
-        )
+        cur = await db.execute("SELECT id, login, is_admin, is_active, created_at FROM users ORDER BY id")
         return [dict(r) for r in await cur.fetchall()]
     finally:
         await db.close()
@@ -284,8 +307,6 @@ async def admin_list_users(admin: dict = Depends(auth.require_admin)):
 
 @app.post("/api/admin/users", status_code=201)
 async def admin_create_user(body: CreateUserRequest, admin: dict = Depends(auth.require_admin)):
-    if len(body.password) < 6:
-        raise HTTPException(status_code=400, detail="Password too short (min 6)")
     hashed = auth.hash_password(body.password)
     db = await get_db()
     try:
@@ -321,9 +342,7 @@ async def admin_toggle_active(user_id: int, admin: dict = Depends(auth.require_a
         raise HTTPException(status_code=400, detail="Cannot deactivate yourself")
     db = await get_db()
     try:
-        await db.execute(
-            "UPDATE users SET is_active = 1 - is_active WHERE id=?", (user_id,)
-        )
+        await db.execute("UPDATE users SET is_active = 1 - is_active WHERE id=?", (user_id,))
         await db.commit()
         cur = await db.execute("SELECT id, login, is_admin, is_active FROM users WHERE id=?", (user_id,))
         return dict(await cur.fetchone())
@@ -345,9 +364,13 @@ async def admin_list_cabinets(admin: dict = Depends(auth.require_admin)):
 
 @app.post("/api/admin/cabinets", status_code=201)
 async def admin_create_cabinet(body: CreateCabinetRequest, admin: dict = Depends(auth.require_admin)):
-    valid = await wb_client.validate_token(body.api_token)
+    try:
+        valid = await wb_client.validate_token(body.api_token)
+    except Exception:
+        valid = True
     if not valid:
-        raise HTTPException(status_code=400, detail="WB token is invalid or has no permissions")
+        raise HTTPException(status_code=400, detail="WB token rejected (401/403)")
+
     db = await get_db()
     try:
         try:
@@ -359,7 +382,6 @@ async def admin_create_cabinet(body: CreateCabinetRequest, admin: dict = Depends
             cabinet_id = cur.lastrowid
         except Exception:
             raise HTTPException(status_code=409, detail="Token already exists")
-        # Trigger immediate sync for new cabinet
         cur2 = await db.execute("SELECT id, name, api_token FROM wb_cabinets WHERE id=?", (cabinet_id,))
         cabinet = dict(await cur2.fetchone())
     finally:
@@ -376,7 +398,7 @@ async def _sync_one_cabinet(cabinet: dict) -> None:
         try:
             await fn(cabinet)
         except Exception as e:
-            logging.error("Sync error for cabinet %d: %s", cabinet["id"], e)
+            logger.error("Sync error for cabinet %d: %s", cabinet["id"], e)
 
 
 @app.delete("/api/admin/cabinets/{cabinet_id}", status_code=204)
@@ -415,7 +437,7 @@ async def admin_set_permissions(user_id: int, body: SetAllPermissionsRequest,
         await db.execute("DELETE FROM user_permissions WHERE user_id=?", (user_id,))
         for p in body.permissions:
             if not (p.can_view_orders or p.can_view_stock or p.can_view_ads or p.can_view_finances):
-                continue  # skip if no permissions granted
+                continue
             await db.execute("""
                 INSERT INTO user_permissions
                     (user_id, cabinet_id, can_view_orders, can_view_stock, can_view_ads, can_view_finances)

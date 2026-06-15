@@ -1,12 +1,20 @@
 """
-Wildberries API client — covers orders, stocks, ads, finances.
+Wildberries API client — orders, stocks, ads, finances.
 All methods accept token explicitly — no global state.
+Handles 429 rate limits with exponential backoff.
 """
+import asyncio
+import logging
+
 import httpx
+
+logger = logging.getLogger(__name__)
 
 _BASE_MARKETPLACE = "https://marketplace-api.wildberries.ru"
 _BASE_STATISTICS   = "https://statistics-api.wildberries.ru"
 _BASE_ADVERT       = "https://advert-api.wildberries.ru"
+
+_MAX_RETRIES = 3
 
 
 class WBApiError(Exception):
@@ -20,25 +28,43 @@ def _headers(token: str) -> dict:
 
 
 async def _get(token: str, base: str, path: str, params: dict | None = None) -> dict | list:
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.get(f"{base}{path}", headers=_headers(token), params=params or {})
+    url = f"{base}{path}"
+    for attempt in range(_MAX_RETRIES):
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.get(url, headers=_headers(token), params=params or {})
+        if r.status_code == 429:
+            wait = int(r.headers.get("X-Ratelimit-Reset", 60))
+            wait = min(wait, 60)  # cap at 60s
+            logger.warning("WB rate limit hit %s, waiting %ds (attempt %d)", path, wait, attempt + 1)
+            await asyncio.sleep(wait)
+            continue
         if r.status_code >= 400:
             raise WBApiError(r.status_code, r.text[:300])
         return r.json()
+    raise WBApiError(429, "Rate limit: max retries exceeded")
 
 
 async def _post(token: str, base: str, path: str, body: dict | list) -> dict | list:
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.post(f"{base}{path}", headers=_headers(token), json=body)
+    url = f"{base}{path}"
+    for attempt in range(_MAX_RETRIES):
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(url, headers=_headers(token), json=body)
+        if r.status_code == 429:
+            wait = int(r.headers.get("X-Ratelimit-Reset", 60))
+            wait = min(wait, 60)
+            logger.warning("WB rate limit hit %s, waiting %ds (attempt %d)", url, wait, attempt + 1)
+            await asyncio.sleep(wait)
+            continue
         if r.status_code >= 400:
             raise WBApiError(r.status_code, r.text[:300])
         return r.json()
+    raise WBApiError(429, "Rate limit: max retries exceeded")
 
 
 # ── Token validation ──────────────────────────────────────────────────────────
 
 async def validate_token(token: str) -> bool:
-    """Returns True if token can reach WB API, False if clearly invalid."""
+    """Returns True if token can reach WB API. False only on 401/403."""
     from datetime import datetime, timedelta, timezone
     date_from = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
@@ -47,41 +73,48 @@ async def validate_token(token: str) -> bool:
     except WBApiError as e:
         if e.status in (401, 403):
             return False
-        # Any other HTTP error (429, 5xx) — token format is OK, accept it
+        # 429, 5xx, etc — token is alive but rate-limited or WB is down
         return True
     except Exception:
         return False
 
 
-# ── Orders ────────────────────────────────────────────────────────────────────
+# ── Orders (with cursor pagination) ──────────────────────────────────────────
 
-async def get_orders(token: str, date_from: str, limit: int = 1000) -> list[dict]:
-    """Returns list of orders since date_from (ISO-8601 string)."""
-    data = await _get(token, _BASE_MARKETPLACE, "/api/v3/orders", {
-        "dateFrom": date_from,
-        "limit": limit,
-    })
-    return data.get("orders", []) if isinstance(data, dict) else []
+async def get_orders(token: str, date_from: str) -> list[dict]:
+    """Returns all orders since date_from using cursor pagination."""
+    all_orders: list[dict] = []
+    params: dict = {"dateFrom": date_from, "limit": 1000}
+    while True:
+        try:
+            data = await _get(token, _BASE_MARKETPLACE, "/api/v3/orders", params)
+        except WBApiError:
+            break
+        if not isinstance(data, dict):
+            break
+        batch = data.get("orders") or []
+        all_orders.extend(batch)
+        cursor = data.get("next")
+        if not cursor or len(batch) < 1000:
+            break
+        params["next"] = cursor
+    return all_orders
 
 
 # ── Stocks ────────────────────────────────────────────────────────────────────
 
 async def get_stocks(token: str, date_from: str) -> list[dict]:
-    """
-    Returns current stock levels from Statistics API.
-    date_from: date string YYYY-MM-DD
-    """
-    data = await _get(token, _BASE_STATISTICS, "/api/v1/supplier/stocks", {
-        "dateFrom": date_from,
-    })
+    data = await _get(token, _BASE_STATISTICS, "/api/v1/supplier/stocks", {"dateFrom": date_from})
     return data if isinstance(data, list) else []
 
 
 # ── Advertising ───────────────────────────────────────────────────────────────
 
 async def get_ad_campaigns(token: str) -> list[dict]:
-    """Returns list of all ad campaigns."""
-    data = await _get(token, _BASE_ADVERT, "/adv/v1/promotion/count")
+    try:
+        data = await _get(token, _BASE_ADVERT, "/adv/v1/promotion/count")
+    except WBApiError:
+        return []
     if not isinstance(data, dict):
         return []
     campaigns = []
@@ -97,7 +130,6 @@ async def get_ad_campaigns(token: str) -> list[dict]:
 
 
 async def get_ad_stats(token: str, campaign_ids: list[int], date_from: str, date_to: str) -> list[dict]:
-    """Returns full statistics for given campaign IDs."""
     if not campaign_ids:
         return []
     body = [{"id": cid, "dates": [date_from, date_to]} for cid in campaign_ids[:50]]
@@ -111,14 +143,13 @@ async def get_ad_stats(token: str, campaign_ids: list[int], date_from: str, date
 # ── Finances ──────────────────────────────────────────────────────────────────
 
 async def get_finance_report(token: str, date_from: str, date_to: str) -> list[dict]:
-    """
-    Detailed sales report (weekly payout report).
-    Returns list of report rows.
-    """
-    data = await _get(token, _BASE_STATISTICS, "/api/v5/supplier/reportDetailByPeriod", {
-        "dateFrom": date_from,
-        "dateTo": date_to,
-        "rrdid": 0,
-        "limit": 100000,
-    })
+    try:
+        data = await _get(token, _BASE_STATISTICS, "/api/v5/supplier/reportDetailByPeriod", {
+            "dateFrom": date_from,
+            "dateTo": date_to,
+            "rrdid": 0,
+            "limit": 100000,
+        })
+    except WBApiError:
+        return []
     return data if isinstance(data, list) else []
