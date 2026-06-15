@@ -55,7 +55,7 @@ async def init_db() -> None:
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 cabinet_id  INTEGER NOT NULL REFERENCES wb_cabinets(id) ON DELETE CASCADE,
                 checked_at  TEXT NOT NULL,
-                nm_id       INTEGER NOT NULL,
+                nm_id       INTEGER,
                 article     TEXT,
                 name        TEXT,
                 quantity    INTEGER NOT NULL DEFAULT 0,
@@ -101,6 +101,40 @@ async def init_db() -> None:
                 await db.execute(migration)
             except Exception:
                 pass  # column already exists
+
+        # Migration: make stock_cache.nm_id nullable (was NOT NULL, breaks FBS stocks)
+        try:
+            # Check if nm_id column is still NOT NULL by inserting a test then rolling back
+            await db.execute("SAVEPOINT check_nm_id")
+            try:
+                await db.execute(
+                    "INSERT INTO stock_cache (cabinet_id, checked_at, nm_id, quantity) VALUES (0, '', NULL, 0)"
+                )
+                await db.execute("ROLLBACK TO SAVEPOINT check_nm_id")
+            except Exception:
+                # nm_id is NOT NULL — recreate table
+                await db.execute("ROLLBACK TO SAVEPOINT check_nm_id")
+                await db.executescript("""
+                    CREATE TABLE IF NOT EXISTS stock_cache_new (
+                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                        cabinet_id  INTEGER NOT NULL,
+                        checked_at  TEXT NOT NULL,
+                        nm_id       INTEGER,
+                        article     TEXT,
+                        name        TEXT,
+                        quantity    INTEGER NOT NULL DEFAULT 0,
+                        warehouse   TEXT,
+                        days_left   REAL
+                    );
+                    INSERT OR IGNORE INTO stock_cache_new
+                        SELECT id, cabinet_id, checked_at, nm_id, article, name, quantity, warehouse, days_left
+                        FROM stock_cache;
+                    DROP TABLE stock_cache;
+                    ALTER TABLE stock_cache_new RENAME TO stock_cache;
+                """)
+            await db.execute("RELEASE SAVEPOINT check_nm_id")
+        except Exception:
+            pass
 
         # Migration: recreate finance_report with report_type + date_to columns
         try:

@@ -7,7 +7,7 @@ DATA_DIR = os.environ.get("DATA_DIR", "./data")
 DB_PATH = os.path.join(DATA_DIR, "wb_dashboard.db")
 
 ADMIN_LOGIN = os.environ.get("ADMIN_LOGIN", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "").strip()
 
 # Fernet key for encrypting WB API tokens at rest.
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"

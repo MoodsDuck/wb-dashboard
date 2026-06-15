@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 # Tracks failed login attempts per IP: {ip: [timestamp, ...]}
 _login_attempts: dict[str, list[float]] = defaultdict(list)
 _WINDOW = 300   # 5 minute sliding window
-_MAX_ATTEMPTS = 10  # max failures per window
+_MAX_ATTEMPTS = 30  # max failures per window
 
 
 def check_rate_limit(ip: str) -> None:
