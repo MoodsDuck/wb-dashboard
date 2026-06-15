@@ -643,20 +643,25 @@ async def admin_debug(cabinet_id: int, section: str = "ads", st: int = 0, admin:
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
 
     try:
-        if section == "stocks_fbs":
-            import urllib.parse
-            base = "https://seller-analytics-api.wildberries.ru"
-            st_str = request.query_params.get("stval", "fbo")
-            body = {
-                "currentPeriod": {"start": today, "end": today},
-                "stockType": st_str,
-                "skipDeletedNm": False,
-                "nmIDs": [], "subjectIDs": [], "brandNames": [], "tagIDs": [],
-                "includeOffice": True,
-            }
-            data = await wb_client._post(token, base, "/api/v2/stocks-report/offices", body)
-            return {"stockType": st_str, "data_type": type(data).__name__,
-                    "sample": str(data)[:1500]}
+        if section == "fbs_warehouses":
+            data = await wb_client._get(token, wb_client._BASE_MARKETPLACE, "/api/v3/warehouses")
+            return {"warehouses": data, "count": len(data) if isinstance(data, list) else 0}
+        elif section == "fbs_stocks":
+            # Test FBS stocks: get warehouses, then query stocks for barcodes from orders
+            db2 = await get_db()
+            try:
+                cur = await db2.execute(
+                    "SELECT DISTINCT barcode FROM orders_cache WHERE cabinet_id=? AND barcode IS NOT NULL LIMIT 20",
+                    (cabinet_id,))
+                barcodes = [r["barcode"] for r in await cur.fetchall()]
+            finally:
+                await db2.close()
+            stocks = await wb_client.get_fbs_stocks(token, barcodes[:20])
+            return {"barcodes_tested": len(barcodes), "stocks_found": len(stocks), "sample": stocks[:5]}
+        elif section == "stocks_fbs":
+            # Keep for backwards compat — now just alias fbs_stocks
+            stocks = await wb_client.get_stocks(token)
+            return {"fbo_count": len(stocks), "sample": stocks[:2]}
         elif section == "ads_count":
             data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
             return {"raw": data}

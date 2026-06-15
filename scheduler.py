@@ -66,14 +66,34 @@ async def _fetch_orders(cabinet: dict) -> None:
 async def _fetch_stocks(cabinet: dict) -> None:
     cabinet_id = cabinet["id"]
     token = cabinet["api_token"]
-    try:
-        stocks = await wb_client.get_stocks(token)
-    except wb_client.WBApiError as e:
-        logger.error("[cabinet %d] stocks error: %s", cabinet_id, e)
-        return
 
+    # FBO stocks via warehouse_remains (seller-analytics API)
+    try:
+        fbo_stocks = await wb_client.get_stocks(token)
+    except wb_client.WBApiError as e:
+        logger.error("[cabinet %d] FBO stocks error: %s", cabinet_id, e)
+        fbo_stocks = []
+
+    # FBS stocks via marketplace API — use barcodes from recent orders
+    db_bc = await get_db()
+    try:
+        cur = await db_bc.execute(
+            "SELECT DISTINCT barcode FROM orders_cache WHERE cabinet_id=? AND barcode IS NOT NULL",
+            (cabinet_id,)
+        )
+        barcodes = [r["barcode"] for r in await cur.fetchall()]
+    finally:
+        await db_bc.close()
+
+    try:
+        fbs_stocks = await wb_client.get_fbs_stocks(token, barcodes)
+    except Exception as e:
+        logger.error("[cabinet %d] FBS stocks error: %s", cabinet_id, e)
+        fbs_stocks = []
+
+    stocks = fbo_stocks + fbs_stocks
     if not stocks:
-        logger.info("[cabinet %d] stocks: empty result", cabinet_id)
+        logger.info("[cabinet %d] stocks: empty (FBO=%d FBS=%d)", cabinet_id, len(fbo_stocks), len(fbs_stocks))
         return
 
     checked_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -85,7 +105,21 @@ async def _fetch_stocks(cabinet: dict) -> None:
                          (cabinet_id, cutoff))
 
         for s in stocks:
-            # warehouse_remains response:
+            wh_type = s.get("warehouseType")  # "fbs" for marketplace-api rows
+
+            if wh_type == "fbs":
+                # marketplace-api FBS row: {barcode, amount, warehouseName, warehouseType}
+                barcode = s.get("barcode")
+                qty = s.get("amount", 0)
+                wh_name = s.get("warehouseName") or "FBS"
+                await db.execute("""
+                    INSERT OR IGNORE INTO stock_cache
+                        (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (cabinet_id, checked_at, None, barcode, "FBS склад", qty, wh_name))
+                continue
+
+            # warehouse_remains FBO row:
             # nmId, vendorCode (article), subjectName (name), techSize, volume
             # warehouses: [{warehouseName, quantity, ...}]
             nm_id = s.get("nmId")
@@ -94,7 +128,6 @@ async def _fetch_stocks(cabinet: dict) -> None:
 
             warehouses = s.get("warehouses") or []
             if warehouses:
-                # Store one row per warehouse
                 for wh in warehouses:
                     wh_name = wh.get("warehouseName") or wh.get("name") or "Неизвестно"
                     qty = wh.get("quantity") or wh.get("remains") or 0
@@ -104,13 +137,12 @@ async def _fetch_stocks(cabinet: dict) -> None:
                         VALUES (?, ?, ?, ?, ?, ?, ?)
                     """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name))
             else:
-                # No warehouse breakdown — store aggregate
                 qty = s.get("quantity") or s.get("inWayToClient") or 0
                 await db.execute("""
                     INSERT OR IGNORE INTO stock_cache
                         (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (cabinet_id, checked_at, nm_id, article, name, qty, "Общий"))
+                """, (cabinet_id, checked_at, nm_id, article, name, qty, "Общий FBO"))
 
         await db.commit()
         logger.info("[cabinet %d] stocks synced: %d items", cabinet_id, len(stocks))

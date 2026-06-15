@@ -14,6 +14,7 @@ _BASE_STATISTICS        = "https://statistics-api.wildberries.ru"
 _BASE_SELLER_ANALYTICS  = "https://seller-analytics-api.wildberries.ru"
 _BASE_FINANCE           = "https://finance-api.wildberries.ru"
 _BASE_ADVERT            = "https://advert-api.wildberries.ru"
+_BASE_MARKETPLACE       = "https://marketplace-api.wildberries.ru"
 
 _MAX_RETRIES = 3
 
@@ -155,6 +156,51 @@ async def get_stocks(token: str) -> list[dict]:
         logger.error("warehouse_remains download error: %s", e)
         return []
     return data if isinstance(data, list) else []
+
+
+async def get_fbs_stocks(token: str, barcodes: list[str]) -> list[dict]:
+    """
+    FBS stocks at seller's own warehouses via marketplace API.
+    Step 1: GET /api/v3/warehouses → list of seller warehouses
+    Step 2: POST /api/v3/stocks/{warehouseId} with barcodes → stock amounts
+    Returns list of {barcode, amount, warehouseName, warehouseType='fbs'}.
+    """
+    try:
+        warehouses = await _get(token, _BASE_MARKETPLACE, "/api/v3/warehouses")
+    except WBApiError as e:
+        logger.warning("get FBS warehouses error: %s", e)
+        return []
+    if not isinstance(warehouses, list):
+        return []
+
+    if not barcodes:
+        return [{"warehouseName": wh.get("name") or str(wh.get("id")),
+                 "barcode": None, "amount": 0, "warehouseType": "fbs"}
+                for wh in warehouses if wh.get("id")]
+
+    result = []
+    for wh in warehouses:
+        wh_id = wh.get("id")
+        wh_name = wh.get("name") or str(wh_id)
+        if not wh_id:
+            continue
+        # Batch barcodes: max 1000 per call
+        for i in range(0, len(barcodes), 1000):
+            batch = barcodes[i:i+1000]
+            try:
+                resp = await _post(token, _BASE_MARKETPLACE,
+                                   f"/api/v3/stocks/{wh_id}", {"skus": batch})
+                stocks = resp.get("stocks", []) if isinstance(resp, dict) else []
+                for s in stocks:
+                    result.append({
+                        "barcode": s.get("sku"),
+                        "amount": s.get("amount", 0),
+                        "warehouseName": wh_name,
+                        "warehouseType": "fbs",
+                    })
+            except WBApiError as e:
+                logger.warning("FBS stocks for wh %s error: %s", wh_id, e)
+    return result
 
 
 # ── Advertising ───────────────────────────────────────────────────────────────
