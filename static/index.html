@@ -868,11 +868,14 @@ function FinancesTab({id,df,dt}){
   const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/finances?date_from=${df}&date_to=${dt}`),[id,df,dt]);
   if(loading)return<Loader/>;
   if(error)return<Err msg={error}/>;
-  const all=data||[];
-  const s=k=>all.reduce((a,r)=>a+(r[k]||0),0);
+  const weekly=(data?.weekly)||[];
+  const daily=(data?.daily)||[];
+  // KPI from weekly (authoritative summaries)
+  const src=weekly.length?weekly:daily;
+  const s=k=>src.reduce((a,r)=>a+(r[k]||0),0);
   const rev=s('revenue'),pay=s('to_pay'),com=s('commission'),log=s('logistics'),pen=s('penalty');
   const margin=rev>0?Math.round(pay/rev*100):0;
-  const revByDay=[...all].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const dailySorted=[...daily].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   return(
     <div className="aup">
       <div className="kgrid">
@@ -882,10 +885,10 @@ function FinancesTab({id,df,dt}){
         <KpiCard label="Логистика" value={fmt.r(log)} icon="🚚" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" delay={.15}/>
         <KpiCard label="Штрафы" value={fmt.r(pen)} icon="⚠" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc={pen>0?'k-er':''} delay={.2}/>
       </div>
-      {revByDay.length>0&&(
+      {dailySorted.length>0&&(
         <div className="two-col" style={{marginBottom:14}}>
-          <div className="chart-card"><div className="chart-title">📈 Выручка по дням</div><BarChart data={revByDay} vkey="revenue" lkey="date" color="#3b82f6"/></div>
-          <div className="chart-card"><div className="chart-title">💰 К выплате по дням</div><BarChart data={revByDay} vkey="to_pay" lkey="date" color="#059669"/></div>
+          <div className="chart-card"><div className="chart-title">📈 Выручка по дням</div><BarChart data={dailySorted} vkey="revenue" lkey="date" color="#3b82f6"/></div>
+          <div className="chart-card"><div className="chart-title">💰 К выплате по дням</div><BarChart data={dailySorted} vkey="to_pay" lkey="date" color="#059669"/></div>
         </div>
       )}
       {rev>0&&(
@@ -896,16 +899,30 @@ function FinancesTab({id,df,dt}){
           ))}
         </div>
       )}
-      <DataTable title="Финансовый отчёт" count={`${all.length} дней`} empty="Нет финансовых данных"
-        head={['Дата','Выручка','К выплате','Комиссия','Логистика','Штрафы']}
-        rows={all.map(r=>[
-          <span className="muted">{fmt.d(r.date)}</span>,
+      <DataTable title="📅 Еженедельные отчёты WB" count={`${weekly.length} недель`} empty="Нет еженедельных отчётов"
+        head={['Период','Выручка','К выплате','Комиссия','Логистика','Штрафы']}
+        rows={weekly.map(r=>[
+          <span className="muted">{fmt.d(r.date)}{r.date_to?` — ${fmt.d(r.date_to)}`:''}</span>,
           <span className="num">{fmt.r(r.revenue)}</span>,
           <span className="num semi k-ok">{fmt.r(r.to_pay)}</span>,
           <span className="num">{fmt.r(r.commission)}</span>,
           <span className="num">{fmt.r(r.logistics)}</span>,
           <span className="num" style={{color:r.penalty>0?'var(--er)':'inherit'}}>{fmt.r(r.penalty)}</span>,
         ])}/>
+      {daily.length>0&&(
+        <div style={{marginTop:14}}>
+          <DataTable title="📆 Ежедневная детализация" count={`${daily.length} дней`} empty=""
+            head={['Дата','Выручка','К выплате','Комиссия','Логистика','Штрафы']}
+            rows={daily.map(r=>[
+              <span className="muted">{fmt.d(r.date)}</span>,
+              <span className="num">{fmt.r(r.revenue)}</span>,
+              <span className="num semi k-ok">{fmt.r(r.to_pay)}</span>,
+              <span className="num">{fmt.r(r.commission)}</span>,
+              <span className="num">{fmt.r(r.logistics)}</span>,
+              <span className="num" style={{color:r.penalty>0?'var(--er)':'inherit'}}>{fmt.r(r.penalty)}</span>,
+            ])}/>
+        </div>
+      )}
     </div>
   );
 }

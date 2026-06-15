@@ -80,12 +80,14 @@ async def init_db() -> None:
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 cabinet_id  INTEGER NOT NULL REFERENCES wb_cabinets(id) ON DELETE CASCADE,
                 date        TEXT NOT NULL,
+                report_type TEXT NOT NULL DEFAULT 'weekly',
+                date_to     TEXT,
                 revenue     REAL NOT NULL DEFAULT 0,
                 commission  REAL NOT NULL DEFAULT 0,
                 logistics   REAL NOT NULL DEFAULT 0,
                 penalty     REAL NOT NULL DEFAULT 0,
                 to_pay      REAL NOT NULL DEFAULT 0,
-                UNIQUE(cabinet_id, date)
+                UNIQUE(cabinet_id, date, report_type)
             );
         """)
         # Migrations: add columns if missing (safe to re-run)
@@ -99,6 +101,28 @@ async def init_db() -> None:
                 await db.execute(migration)
             except Exception:
                 pass  # column already exists
+
+        # Migration: recreate finance_report with report_type + date_to columns
+        try:
+            await db.execute("SELECT report_type FROM finance_report LIMIT 1")
+        except Exception:
+            await db.executescript("""
+                DROP TABLE IF EXISTS finance_report;
+                CREATE TABLE finance_report (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cabinet_id  INTEGER NOT NULL,
+                    date        TEXT NOT NULL,
+                    report_type TEXT NOT NULL DEFAULT 'weekly',
+                    date_to     TEXT,
+                    revenue     REAL NOT NULL DEFAULT 0,
+                    commission  REAL NOT NULL DEFAULT 0,
+                    logistics   REAL NOT NULL DEFAULT 0,
+                    penalty     REAL NOT NULL DEFAULT 0,
+                    to_pay      REAL NOT NULL DEFAULT 0,
+                    UNIQUE(cabinet_id, date, report_type)
+                );
+            """)
+
         await db.commit()
 
 

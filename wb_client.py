@@ -283,27 +283,52 @@ async def get_ad_stats(token: str, campaign_ids: list[int], date_from: str, date
 
 # ── Finances ──────────────────────────────────────────────────────────────────
 
-async def get_finance_report(token: str, date_from: str, date_to: str) -> list[dict]:
+async def get_finance_weekly(token: str, date_from: str, date_to: str) -> list[dict]:
     """
-    Weekly sales reports via new finance API.
-    POST finance-api.wildberries.ru/api/finance/v1/sales-reports/list
-    Returns list of weekly report summaries.
+    Weekly summary reports via new finance API.
+    Returns list of {reportId, dateFrom, dateTo, retailAmountSum, forPaySum, ...}.
     """
     try:
         data = await _post(token, _BASE_FINANCE, "/api/finance/v1/sales-reports/list", {
             "dateFrom": date_from,
             "dateTo": date_to,
         })
+        return data if isinstance(data, list) else []
     except WBApiError as e:
-        logger.warning("finance new API error (%s), trying legacy endpoint", e)
-        # Fallback to old statistics API endpoint (deprecated but still works until Jul 15)
-        try:
-            data = await _get(token, _BASE_STATISTICS, "/api/v5/supplier/reportDetailByPeriod", {
-                "dateFrom": date_from,
-                "dateTo": date_to,
-                "rrdid": 0,
-                "limit": 100000,
-            })
-        except WBApiError:
-            return []
-    return data if isinstance(data, list) else []
+        logger.warning("finance weekly API error: %s", e)
+        return []
+
+
+async def get_finance_daily(token: str, date_from: str, date_to: str) -> list[dict]:
+    """
+    Per-row detail via legacy statistics API, aggregated by day.
+    Returns list of {date, revenue, commission, logistics, penalty, to_pay}.
+    """
+    try:
+        data = await _get(token, _BASE_STATISTICS, "/api/v5/supplier/reportDetailByPeriod", {
+            "dateFrom": date_from,
+            "dateTo": date_to,
+            "rrdid": 0,
+            "limit": 100000,
+        })
+    except WBApiError as e:
+        logger.warning("finance daily API error: %s", e)
+        return []
+
+    rows = data if isinstance(data, list) else []
+    by_day: dict = {}
+    for row in rows:
+        date = (row.get("rr_dt") or "")[:10]
+        if not date:
+            continue
+        if date not in by_day:
+            by_day[date] = {"date": date, "revenue": 0.0, "commission": 0.0,
+                            "logistics": 0.0, "penalty": 0.0, "to_pay": 0.0}
+        revenue = row.get("retail_price_withdisc_rub", 0) or 0
+        pct = row.get("commission_percent", 0) or 0
+        by_day[date]["revenue"] += revenue
+        by_day[date]["commission"] += round(revenue * pct / 100, 2)
+        by_day[date]["logistics"] += row.get("delivery_rub", 0) or 0
+        by_day[date]["penalty"] += row.get("penalty", 0) or 0
+        by_day[date]["to_pay"] += row.get("ppvz_for_pay", 0) or 0
+    return sorted(by_day.values(), key=lambda x: x["date"])

@@ -278,17 +278,30 @@ async def get_finances(cabinet_id: int, date_from: str = "", date_to: str = "",
     await _assert_cabinet_permission(user, cabinet_id, "finances")
     db = await get_db()
     try:
-        query = "SELECT date, revenue, commission, logistics, penalty, to_pay FROM finance_report WHERE cabinet_id=?"
         params: list = [cabinet_id]
+        date_sql = ""
         if date_from:
-            query += " AND date>=?"
+            date_sql += " AND date>=?"
             params.append(date_from)
         if date_to:
-            query += " AND date<=?"
+            date_sql += " AND date<=?"
             params.append(date_to)
-        query += " ORDER BY date DESC"
-        cur = await db.execute(query, params)
-        return [dict(r) for r in await cur.fetchall()]
+
+        cur = await db.execute(
+            f"SELECT date, date_to, revenue, commission, logistics, penalty, to_pay "
+            f"FROM finance_report WHERE cabinet_id=? AND report_type='weekly' {date_sql} ORDER BY date DESC",
+            params
+        )
+        weekly = [dict(r) for r in await cur.fetchall()]
+
+        cur2 = await db.execute(
+            f"SELECT date, revenue, commission, logistics, penalty, to_pay "
+            f"FROM finance_report WHERE cabinet_id=? AND report_type='daily' {date_sql} ORDER BY date DESC",
+            params
+        )
+        daily = [dict(r) for r in await cur2.fetchall()]
+
+        return {"weekly": weekly, "daily": daily}
     finally:
         await db.close()
 
