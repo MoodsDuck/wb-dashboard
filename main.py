@@ -517,6 +517,52 @@ async def admin_force_sync(admin: dict = Depends(auth.require_admin)):
     return {"ok": True, "message": "Sync started"}
 
 
+@app.get("/api/admin/debug/{cabinet_id}")
+async def admin_debug(cabinet_id: int, section: str = "ads", admin: dict = Depends(auth.require_admin)):
+    """Debug: directly call WB API and return raw response for diagnosis."""
+    db = await get_db()
+    try:
+        cur = await db.execute("SELECT api_token FROM wb_cabinets WHERE id=?", (cabinet_id,))
+        row = await cur.fetchone()
+    finally:
+        await db.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Cabinet not found")
+    token = row["api_token"]
+
+    from datetime import datetime, timedelta, timezone
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    try:
+        if section == "ads_count":
+            data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
+            return {"raw": data}
+        elif section == "ads_stats":
+            data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v3/fullstats", {
+                "ids": "0", "beginDate": week_ago, "endDate": today
+            })
+            return {"raw": data}
+        elif section == "stocks":
+            data = await wb_client._get(token, wb_client._BASE_STATISTICS, "/api/v1/warehouse_remains", {})
+            return {"raw": data}
+        elif section == "finance":
+            data = await wb_client._post(token, wb_client._BASE_FINANCE, "/api/finance/v1/sales-reports/list", {
+                "dateFrom": week_ago, "dateTo": today
+            })
+            return {"raw": data}
+        elif section == "orders":
+            data = await wb_client._get(token, wb_client._BASE_STATISTICS, "/api/v1/supplier/orders", {
+                "dateFrom": week_ago, "flag": 0
+            })
+            items = data if isinstance(data, list) else []
+            return {"count": len(items), "first": items[:2] if items else []}
+    except wb_client.WBApiError as e:
+        return {"error": str(e), "status": e.status}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ── Static files ──────────────────────────────────────────────────────────────
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
