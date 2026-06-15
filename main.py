@@ -643,7 +643,23 @@ async def admin_debug(cabinet_id: int, section: str = "ads", admin: dict = Depen
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
 
     try:
-        if section == "ads_count":
+        if section == "stocks_fbs":
+            # Test POST /api/v2/stocks-report/offices for FBS+FBO stocks
+            body = {"nmIDs": [], "subjectIDs": [], "brandNames": [], "tagIDs": [], "includeOffice": True}
+            results = {}
+            for base in ["https://seller-analytics-api.wildberries.ru",
+                         "https://analytics-api.wildberries.ru"]:
+                try:
+                    data = await wb_client._post(token, base, "/api/v2/stocks-report/offices", body)
+                    results[base] = {"ok": True, "type": type(data).__name__,
+                                     "sample": str(data)[:500] if data else None}
+                    break
+                except wb_client.WBApiError as e:
+                    results[base] = {"error": str(e)}
+                except Exception as e:
+                    results[base] = {"exception": str(e)}
+            return results
+        elif section == "ads_count":
             data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
             return {"raw": data}
         elif section == "ads_names":
