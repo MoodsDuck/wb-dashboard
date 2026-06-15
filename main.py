@@ -626,7 +626,7 @@ async def admin_force_sync(admin: dict = Depends(auth.require_admin)):
 
 
 @app.get("/api/admin/debug/{cabinet_id}")
-async def admin_debug(cabinet_id: int, section: str = "ads", st: int = 0, admin: dict = Depends(auth.require_admin)):
+async def admin_debug(cabinet_id: int, section: str = "ads", st: int = 0, admin: dict = Depends(auth.require_admin), request: Request = None):
     """Debug: directly call WB API and return raw response for diagnosis."""
     db = await get_db()
     try:
@@ -644,17 +644,18 @@ async def admin_debug(cabinet_id: int, section: str = "ads", st: int = 0, admin:
 
     try:
         if section == "stocks_fbs":
+            import urllib.parse
             base = "https://seller-analytics-api.wildberries.ru"
-            stock_type = st
+            st_str = request.query_params.get("stval", "fbo")
             body = {
                 "currentPeriod": {"start": today, "end": today},
-                "stockType": stock_type,
+                "stockType": st_str,
                 "skipDeletedNm": False,
                 "nmIDs": [], "subjectIDs": [], "brandNames": [], "tagIDs": [],
                 "includeOffice": True,
             }
             data = await wb_client._post(token, base, "/api/v2/stocks-report/offices", body)
-            return {"stockType": stock_type, "data_type": type(data).__name__,
+            return {"stockType": st_str, "data_type": type(data).__name__,
                     "sample": str(data)[:1500]}
         elif section == "ads_count":
             data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
