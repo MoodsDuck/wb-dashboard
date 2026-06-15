@@ -303,7 +303,9 @@ async def get_finances(cabinet_id: int, date_from: str = "", date_to: str = "",
             overlap_sql += " AND date<=?"
             overlap_params.append(date_to)
         cur = await db.execute(
-            f"SELECT date, date_to, revenue, commission, logistics, penalty, to_pay "
+            f"SELECT date, date_to, revenue, commission, logistics, penalty, to_pay, "
+            f"COALESCE(storage,0) as storage, COALESCE(returns,0) as returns, "
+            f"COALESCE(other_deductions,0) as other_deductions "
             f"FROM finance_report WHERE cabinet_id=? AND report_type='weekly' {overlap_sql} ORDER BY date DESC",
             overlap_params
         )

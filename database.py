@@ -96,6 +96,9 @@ async def init_db() -> None:
             "ALTER TABLE orders_cache ADD COLUMN size TEXT",
             "ALTER TABLE orders_cache ADD COLUMN subject TEXT",
             "ALTER TABLE orders_cache ADD COLUMN discount_percent REAL DEFAULT 0",
+            "ALTER TABLE finance_report ADD COLUMN storage REAL NOT NULL DEFAULT 0",
+            "ALTER TABLE finance_report ADD COLUMN returns REAL NOT NULL DEFAULT 0",
+            "ALTER TABLE finance_report ADD COLUMN other_deductions REAL NOT NULL DEFAULT 0",
         ]:
             try:
                 await db.execute(migration)

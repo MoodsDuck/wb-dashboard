@@ -870,7 +870,7 @@ function FinancesTab({id,df,dt}){
   if(error)return<Err msg={error}/>;
   const all=Array.isArray(data)?data:[];
   const s=k=>all.reduce((a,r)=>a+(r[k]||0),0);
-  const rev=s('revenue'),pay=s('to_pay'),com=s('commission'),log=s('logistics'),pen=s('penalty');
+  const rev=s('revenue'),pay=s('to_pay'),com=s('commission'),log=s('logistics'),pen=s('penalty'),stor=s('storage'),ret=s('returns'),oth=s('other_deductions');
   const margin=rev>0?Math.round(pay/rev*100):0;
   const revByDay=[...all].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   return(
@@ -891,13 +891,13 @@ function FinancesTab({id,df,dt}){
       {rev>0&&(
         <div className="chart-card" style={{marginBottom:14}}>
           <div className="chart-title">📊 Структура выручки</div>
-          {[{l:'К выплате',v:pay,c:'#059669'},{l:'Комиссия WB',v:com,c:'#f59e0b'},{l:'Логистика',v:log,c:'#3b82f6'},{l:'Штрафы',v:pen,c:'#ef4444'}].map((it,i)=>(
+          {[{l:'К выплате',v:pay,c:'#059669'},{l:'Комиссия WB',v:com,c:'#f59e0b'},{l:'Логистика',v:log,c:'#3b82f6'},{l:'Хранение',v:stor,c:'#8b5cf6'},{l:'Возвраты',v:ret,c:'#f97316'},{l:'Прочие вычеты',v:oth,c:'#94a3b8'},{l:'Штрафы',v:pen,c:'#ef4444'}].filter(x=>x.v>0).map((it,i)=>(
             <HBarRow key={i} label={it.l} value={it.v} max={rev} color={it.c} sub={fmt.pct(it.v,rev)}/>
           ))}
         </div>
       )}
       <DataTable title="Финансовые отчёты WB" count={`${all.length} периодов`} empty="Нет финансовых данных — нажмите «Обновить данные»"
-        head={['Период','Выручка','К выплате','Маржа','Комиссия WB','Логистика','Штрафы']}
+        head={['Период','Выручка','К выплате','Маржа','Комиссия WB','Логистика','Хранение','Возвраты','Штрафы']}
         rows={all.map(r=>{
           const margin=r.revenue>0?Math.round(r.to_pay/r.revenue*100):0;
           const period=r.date_to&&r.date_to!==r.date?`${fmt.d(r.date)} — ${fmt.d(r.date_to)}`:fmt.d(r.date);
@@ -908,6 +908,8 @@ function FinancesTab({id,df,dt}){
             <span className={`num semi ${margin<50?'k-wa':'k-ok'}`}>{margin}%</span>,
             <span className="num">{fmt.r(r.commission)}</span>,
             <span className="num">{fmt.r(r.logistics)}</span>,
+            <span className="num">{fmt.r(r.storage||0)}</span>,
+            <span className="num">{fmt.r(r.returns||0)}</span>,
             <span className="num" style={{color:r.penalty>0?'var(--er)':'inherit'}}>{fmt.r(r.penalty)}</span>,
           ];
         })}/>

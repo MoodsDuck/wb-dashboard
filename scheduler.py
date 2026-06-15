@@ -244,17 +244,25 @@ async def _fetch_finances(cabinet: dict) -> None:
             revenue = float(row.get("retailAmountSum") or 0)
             logistics = float(row.get("deliveryServiceSum") or 0)
             penalty = float(row.get("penaltySum") or 0)
+            storage = float(row.get("storageSum") or 0)
+            returns = float(row.get("returnSum") or 0)
+            other = float(row.get("deductionSum") or 0)
             to_pay = float(row.get("forPaySum") or 0)
-            commission = max(0.0, revenue - to_pay - logistics - penalty)
+            # Commission = WB fee = revenue minus all known deductions minus payout
+            commission = max(0.0, revenue - to_pay - logistics - penalty - storage - returns - other)
             await db.execute("""
                 INSERT INTO finance_report
-                    (cabinet_id, date, report_type, date_to, revenue, commission, logistics, penalty, to_pay)
-                VALUES (?, ?, 'weekly', ?, ?, ?, ?, ?, ?)
+                    (cabinet_id, date, report_type, date_to, revenue, commission,
+                     logistics, penalty, to_pay, storage, returns, other_deductions)
+                VALUES (?, ?, 'weekly', ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(cabinet_id, date, report_type) DO UPDATE SET
                     date_to=excluded.date_to, revenue=excluded.revenue,
                     commission=excluded.commission, logistics=excluded.logistics,
-                    penalty=excluded.penalty, to_pay=excluded.to_pay
-            """, (cabinet_id, date, date_to_w, revenue, commission, logistics, penalty, to_pay))
+                    penalty=excluded.penalty, to_pay=excluded.to_pay,
+                    storage=excluded.storage, returns=excluded.returns,
+                    other_deductions=excluded.other_deductions
+            """, (cabinet_id, date, date_to_w, revenue, commission,
+                  logistics, penalty, to_pay, storage, returns, other))
         await db.commit()
         logger.info("[cabinet %d] finances synced: %d weekly reports", cabinet_id, len(weekly))
     finally:
