@@ -75,15 +75,42 @@ async def _ensure_admin() -> None:
             )
             logger.info("Admin account created: %s", ADMIN_LOGIN)
         else:
-            # Always sync password from env so .env.amvera changes take effect
+            # Always sync password+active from env so .env.amvera changes take effect
             await db.execute(
-                "UPDATE users SET password_hash=?, is_admin=1 WHERE login=?",
+                "UPDATE users SET password_hash=?, is_admin=1, is_active=1 WHERE login=?",
                 (hashed, ADMIN_LOGIN),
             )
             logger.info("Admin password synced from env: %s", ADMIN_LOGIN)
         await db.commit()
     finally:
         await db.close()
+
+
+# ── Debug (no auth) ──────────────────────────────────────────────────────────
+
+@app.get("/api/debug-admin-status")
+async def debug_admin_status():
+    """Temp: check admin user DB state. Remove after debugging."""
+    db = await get_db()
+    try:
+        cur = await db.execute(
+            "SELECT login, is_admin, is_active, length(password_hash) as hash_len "
+            "FROM users WHERE login=?", (ADMIN_LOGIN,)
+        )
+        row = await cur.fetchone()
+    finally:
+        await db.close()
+    if not row:
+        return {"exists": False, "login": ADMIN_LOGIN}
+    return {
+        "exists": True,
+        "login": row["login"],
+        "is_admin": row["is_admin"],
+        "is_active": row["is_active"],
+        "hash_len": row["hash_len"],
+        "env_password_len": len(ADMIN_PASSWORD),
+        "env_password_stripped": ADMIN_PASSWORD.strip() == ADMIN_PASSWORD,
+    }
 
 
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
