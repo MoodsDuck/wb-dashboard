@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def _fetch_orders(cabinet: dict) -> None:
     cabinet_id = cabinet["id"]
     token = cabinet["api_token"]
-    date_from = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    date_from = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
         orders = await wb_client.get_orders(token, date_from)
     except wb_client.WBApiError as e:
@@ -144,7 +144,9 @@ async def _fetch_finances(cabinet: dict) -> None:
             continue
         d = by_date.setdefault(date, {"revenue": 0, "commission": 0, "logistics": 0, "penalty": 0, "to_pay": 0})
         d["revenue"] += row.get("retail_price_withdisc_rub", 0) or 0
-        d["commission"] += row.get("commission_percent", 0) or 0
+        rev = row.get("retail_price_withdisc_rub", 0) or 0
+        pct = row.get("commission_percent", 0) or 0
+        d["commission"] += round(rev * pct / 100, 2)
         d["logistics"] += row.get("delivery_rub", 0) or 0
         d["penalty"] += row.get("penalty", 0) or 0
         d["to_pay"] += row.get("ppvz_for_pay", 0) or 0

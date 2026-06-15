@@ -11,457 +11,424 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     :root{
-      /* Sidebar — тёмный как у Stripe */
-      --sb-bg:#0f1629;
-      --sb-bg2:#162040;
-      --sb-border:rgba(255,255,255,0.07);
-      --sb-text:#94a3b8;
-      --sb-text-active:#f1f5f9;
-      --sb-active-bg:rgba(59,130,246,0.18);
-      --sb-active-border:#3b82f6;
-      --sb-section:#475569;
-
-      /* Main area — светлая */
-      --bg:#f1f5f9;
-      --white:#ffffff;
-      --surface:#ffffff;
-      --surface2:#f8fafc;
-
-      /* Borders */
-      --border:#e2e8f0;
-      --border2:#cbd5e1;
-
-      /* Accent */
-      --accent:#2563eb;
-      --accent-light:#eff6ff;
-      --accent-text:#1d4ed8;
-
-      /* Text */
-      --text:#0f172a;
-      --text2:#475569;
-      --text3:#94a3b8;
-
-      /* Status */
-      --success:#059669;
-      --success-bg:#ecfdf5;
-      --success-border:#a7f3d0;
-      --warning:#d97706;
-      --warning-bg:#fffbeb;
-      --warning-border:#fde68a;
-      --danger:#dc2626;
-      --danger-bg:#fef2f2;
-      --danger-border:#fecaca;
-      --info:#2563eb;
-      --info-bg:#eff6ff;
-      --info-border:#bfdbfe;
-
-      --r:10px;--r-sm:7px;--r-lg:14px;
-      --sw:240px;
-      --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
-      --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.05);
-      --shadow-lg:0 10px 28px rgba(0,0,0,.10),0 4px 10px rgba(0,0,0,.06);
+      --sb:#0f1629; --sb2:#162040; --sb-b:rgba(255,255,255,.07);
+      --sb-t:#94a3b8; --sb-ta:#f1f5f9; --sb-act:rgba(59,130,246,.18);
+      --bg:#f1f5f9; --white:#fff; --s2:#f8fafc;
+      --bd:#e2e8f0; --bd2:#cbd5e1;
+      --acc:#2563eb; --acc-l:#eff6ff; --acc-t:#1d4ed8;
+      --txt:#0f172a; --txt2:#475569; --txt3:#94a3b8;
+      --ok:#059669; --ok-b:#ecfdf5; --ok-e:#a7f3d0;
+      --wa:#d97706; --wa-b:#fffbeb; --wa-e:#fde68a;
+      --er:#dc2626; --er-b:#fef2f2; --er-e:#fecaca;
+      --in:#2563eb; --in-b:#eff6ff; --in-e:#bfdbfe;
+      --r:10px; --rs:7px; --rl:14px;
+      --sw:230px;
+      --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+      --shm:0 4px 12px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.05);
+      --shl:0 10px 28px rgba(0,0,0,.10),0 4px 10px rgba(0,0,0,.06);
     }
-
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;font-family:'Inter',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;background:var(--bg);color:var(--text)}
+    html,body{height:100%;font-family:'Inter',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;background:var(--bg);color:var(--txt)}
     a{color:inherit;text-decoration:none}
-    button,input{font-family:inherit}
+    button,input,select{font-family:inherit}
     ::-webkit-scrollbar{width:4px;height:4px}
-    ::-webkit-scrollbar-track{background:transparent}
     ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
 
-    /* ── Animations ── */
-    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes shimmer{from{background-position:-200% 0}to{background-position:200% 0}}
-    .anim-up{animation:fadeUp .3s cubic-bezier(.22,1,.36,1) both}
-    .anim-in{animation:fadeIn .2s ease both}
+    .aup{animation:fadeUp .28s cubic-bezier(.22,1,.36,1) both}
 
-    /* ── Layout ── */
     .app{display:flex;min-height:100vh}
-    .sidebar{
-      position:fixed;top:0;left:0;bottom:0;width:var(--sw);
-      background:var(--sb-bg);
-      display:flex;flex-direction:column;z-index:100;
-      overflow:hidden;
-    }
-    /* Subtle right border + accent line top */
-    .sidebar::before{content:'';position:absolute;top:0;right:0;bottom:0;width:1px;background:var(--sb-border)}
-    .sidebar::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
 
-    .main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
-
-    /* ── Sidebar brand ── */
-    .sb-brand{padding:20px 16px 16px;border-bottom:1px solid var(--sb-border);flex-shrink:0}
-    .sb-brand-inner{display:flex;align-items:center;gap:10px}
-    .sb-logo{
-      width:34px;height:34px;border-radius:8px;flex-shrink:0;
-      background:linear-gradient(135deg,#3b82f6,#8b5cf6);
-      display:flex;align-items:center;justify-content:center;font-size:17px;
-    }
-    .sb-name{font-size:14px;font-weight:700;color:#f1f5f9;letter-spacing:-.2px}
-    .sb-tag{font-size:10px;color:#64748b;margin-top:1px;font-weight:500}
-
-    /* ── Sidebar nav ── */
-    .sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
-    .sb-section{
-      padding:14px 8px 4px;
-      font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;
-      color:var(--sb-section);
-    }
-    .sb-item{
-      display:flex;align-items:center;gap:9px;
-      padding:8px 10px;border-radius:8px;
-      color:var(--sb-text);font-size:13px;font-weight:500;
-      cursor:pointer;transition:all .15s;margin-bottom:1px;
-      border-left:2px solid transparent;
-    }
-    .sb-item:hover{background:rgba(255,255,255,.06);color:var(--sb-text-active);padding-left:12px}
-    .sb-item.active{
-      background:var(--sb-active-bg);
-      color:var(--sb-text-active);
-      border-left-color:var(--sb-active-border);
-      padding-left:8px;
-    }
-    .sb-icon{
-      width:26px;height:26px;border-radius:6px;
-      display:flex;align-items:center;justify-content:center;
-      font-size:13px;flex-shrink:0;
-      background:rgba(255,255,255,.05);
-      transition:background .15s;
-    }
-    .sb-item.active .sb-icon{background:rgba(59,130,246,.25)}
-    .sb-item:hover .sb-icon{background:rgba(255,255,255,.09)}
-
-    .sb-divider{height:1px;background:var(--sb-border);margin:8px 0}
-
-    /* Cabinet badge в сайдбаре */
-    .sb-cab-badge{
-      margin:0 8px 10px;padding:9px 10px;
-      background:rgba(255,255,255,.05);border:1px solid var(--sb-border);
-      border-radius:8px;
-    }
-    .sb-cab-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#64748b;margin-bottom:4px}
-    .sb-cab-name{font-size:12px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-    /* ── Sidebar footer ── */
-    .sb-footer{padding:10px 8px 12px;border-top:1px solid var(--sb-border);flex-shrink:0}
-    .sb-user{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s}
-    .sb-user:hover{background:rgba(255,255,255,.06)}
-    .sb-ava{
-      width:30px;height:30px;border-radius:50%;flex-shrink:0;
-      background:linear-gradient(135deg,#3b82f6,#8b5cf6);
-      display:flex;align-items:center;justify-content:center;
-      font-size:12px;font-weight:700;color:#fff;
-    }
-    .sb-user-info{flex:1;min-width:0}
-    .sb-uname{font-size:12.5px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    /* ── Sidebar ── */
+    .sb{position:fixed;top:0;left:0;bottom:0;width:var(--sw);background:var(--sb);display:flex;flex-direction:column;z-index:100}
+    .sb::before{content:'';position:absolute;top:0;right:0;bottom:0;width:1px;background:var(--sb-b)}
+    .sb::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
+    .sb-brand{padding:18px 14px 14px;border-bottom:1px solid var(--sb-b);display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .sb-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .sb-name{font-size:13px;font-weight:700;color:#f1f5f9}
+    .sb-sub{font-size:9px;color:#64748b;margin-top:1px;text-transform:uppercase;letter-spacing:.5px}
+    .sb-nav{flex:1;padding:8px 7px;overflow-y:auto}
+    .sb-sec{padding:12px 8px 3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:#475569}
+    .sb-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;color:var(--sb-t);font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;border-left:2px solid transparent}
+    .sb-item:hover{background:rgba(255,255,255,.06);color:var(--sb-ta)}
+    .sb-item.on{background:var(--sb-act);color:var(--sb-ta);border-left-color:#3b82f6}
+    .sb-ic{width:24px;height:24px;border-radius:5px;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+    .sb-item.on .sb-ic{background:rgba(59,130,246,.25)}
+    .sb-div{height:1px;background:var(--sb-b);margin:6px 0}
+    .sb-cab{margin:0 7px 8px;padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid var(--sb-b);border-radius:7px}
+    .sb-cab-l{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#64748b;margin-bottom:3px}
+    .sb-cab-n{font-size:11.5px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .sb-foot{padding:8px 7px 10px;border-top:1px solid var(--sb-b);flex-shrink:0}
+    .sb-user{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:7px;cursor:default}
+    .sb-ava{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+    .sb-uname{font-size:12px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .sb-urole{font-size:10px;color:#64748b;margin-top:1px}
-    .sb-logout{
-      padding:4px;border-radius:5px;background:none;border:none;
-      color:#64748b;cursor:pointer;font-size:14px;line-height:1;transition:all .15s;
-    }
+    .sb-logout{padding:4px;border-radius:5px;background:none;border:none;color:#64748b;cursor:pointer;font-size:13px;line-height:1;transition:all .15s;margin-left:auto;flex-shrink:0}
     .sb-logout:hover{color:#f87171;background:rgba(248,113,113,.1)}
 
     /* ── Topbar ── */
-    .topbar{
-      height:54px;display:flex;align-items:center;justify-content:space-between;
-      padding:0 28px;background:var(--white);
-      border-bottom:1px solid var(--border);
-      position:sticky;top:0;z-index:50;
-      box-shadow:var(--shadow);
-    }
-    .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px}
-    .bc-sep{color:var(--text3)}
-    .bc-item{color:var(--text3);font-weight:500}
-    .bc-current{color:var(--text);font-weight:600}
-    .topbar-right{display:flex;align-items:center;gap:10px}
-    .status-pill{
-      display:flex;align-items:center;gap:6px;
-      padding:5px 10px;border-radius:20px;
-      background:var(--success-bg);border:1px solid var(--success-border);
-      font-size:11px;font-weight:600;color:var(--success);
-    }
-    .status-dot{width:5px;height:5px;border-radius:50%;background:var(--success)}
-    .sync-btn{
-      display:flex;align-items:center;gap:6px;padding:6px 13px;
-      background:var(--white);border:1px solid var(--border2);
-      border-radius:var(--r-sm);color:var(--text2);font-size:12px;font-weight:600;
-      cursor:pointer;transition:all .15s;font-family:inherit;box-shadow:var(--shadow);
-    }
-    .sync-btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+    .topbar{height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:var(--white);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;box-shadow:var(--sh)}
+    .bc{display:flex;align-items:center;gap:5px;font-size:12.5px}
+    .bc-sep{color:var(--txt3)}.bc-dim{color:var(--txt3);font-weight:500}.bc-cur{color:var(--txt);font-weight:600}
+    .tr{display:flex;align-items:center;gap:8px}
+    .online-pill{display:flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;background:var(--ok-b);border:1px solid var(--ok-e);font-size:10.5px;font-weight:600;color:var(--ok)}
+    .dot{width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+    .sync-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;background:var(--white);border:1px solid var(--bd2);border-radius:var(--rs);color:var(--txt2);font-size:11.5px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;box-shadow:var(--sh)}
+    .sync-btn:hover{border-color:var(--acc);color:var(--acc);box-shadow:0 0 0 3px var(--acc-l)}
+    .sync-spin{animation:spin .7s linear infinite;display:inline-block}
 
-    /* ── Page content ── */
-    .page{padding:24px 28px;flex:1}
-    .page-header{margin-bottom:22px}
-    .page-title{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-.4px}
-    .page-sub{font-size:13px;color:var(--text3);margin-top:2px}
-    .page-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    /* ── Main ── */
+    .main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
+    .page{padding:22px 24px;flex:1}
+    .ph{margin-bottom:18px}
+    .ph-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .pt{font-size:19px;font-weight:800;color:var(--txt);letter-spacing:-.4px}
+    .ps{font-size:12px;color:var(--txt3);margin-top:2px}
 
     /* ── Buttons ── */
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:var(--r-sm);font-size:13px;font-weight:600;border:1px solid transparent;transition:all .15s;cursor:pointer;font-family:inherit;white-space:nowrap}
-    .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 1px 3px rgba(37,99,235,.25)}
-    .btn-primary:hover{background:#1d4ed8;border-color:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 10px rgba(37,99,235,.3)}
-    .btn-ghost{background:var(--white);color:var(--text2);border-color:var(--border2);box-shadow:var(--shadow)}
-    .btn-ghost:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
-    .btn-danger{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-border)}
-    .btn-danger:hover{background:#fee2e2}
-    .btn-sm{padding:5px 10px;font-size:12px}
+    .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--rs);font-size:12.5px;font-weight:600;border:1px solid transparent;transition:all .15s;cursor:pointer;font-family:inherit;white-space:nowrap}
+    .btn-p{background:var(--acc);color:#fff;border-color:var(--acc);box-shadow:0 1px 3px rgba(37,99,235,.25)}
+    .btn-p:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 10px rgba(37,99,235,.3)}
+    .btn-g{background:var(--white);color:var(--txt2);border-color:var(--bd2);box-shadow:var(--sh)}
+    .btn-g:hover{background:var(--s2);color:var(--txt)}
+    .btn-d{background:var(--er-b);color:var(--er);border-color:var(--er-e)}
+    .btn-d:hover{background:#fee2e2}
+    .btn-sm{padding:5px 10px;font-size:11.5px}
     .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
 
-    /* ── KPI Cards ── */
-    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:24px}
-    .kpi-card{
-      background:var(--white);border-radius:var(--r);
-      padding:18px 20px;border:1px solid var(--border);
-      box-shadow:var(--shadow);transition:all .2s;
-      position:relative;overflow:hidden;
-    }
-    .kpi-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
-    .kpi-card-accent{position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
-    .kpi-card-accent-blue{background:linear-gradient(180deg,#3b82f6,#8b5cf6)}
-    .kpi-card-accent-green{background:linear-gradient(180deg,#10b981,#059669)}
-    .kpi-card-accent-orange{background:linear-gradient(180deg,#f59e0b,#d97706)}
-    .kpi-card-accent-red{background:linear-gradient(180deg,#ef4444,#dc2626)}
-    .kpi-inner{padding-left:10px}
-    .kpi-icon-wrap{
-      width:36px;height:36px;border-radius:8px;
-      display:flex;align-items:center;justify-content:center;font-size:17px;
-      margin-bottom:12px;
-    }
-    .kpi-icon-blue{background:#eff6ff}
-    .kpi-icon-green{background:#ecfdf5}
-    .kpi-icon-orange{background:#fffbeb}
-    .kpi-icon-red{background:#fef2f2}
-    .kpi-label{font-size:12px;font-weight:500;color:var(--text3);margin-bottom:4px}
-    .kpi-value{font-size:26px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums}
-    .kpi-value-green{color:var(--success)}
-    .kpi-value-red{color:var(--danger)}
-    .kpi-value-orange{color:var(--warning)}
+    /* ── KPI cards ── */
+    .kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+    .kcard{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:all .2s;box-shadow:var(--sh)}
+    .kcard:hover{box-shadow:var(--shm);transform:translateY(-2px)}
+    .k-acc{position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+    .k-inner{padding-left:8px}
+    .k-ic{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:10px}
+    .k-lbl{font-size:11px;font-weight:500;color:var(--txt3);margin-bottom:3px}
+    .k-val{font-size:22px;font-weight:800;color:var(--txt);line-height:1;font-variant-numeric:tabular-nums}
+    .k-sub{font-size:10.5px;color:var(--txt3);margin-top:3px}
+    .k-ok{color:var(--ok)!important}.k-wa{color:var(--wa)!important}.k-er{color:var(--er)!important}
 
-    /* ── Cabinet cards ── */
-    .cab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-    .cab-card{
-      background:var(--white);border-radius:var(--r-lg);
-      border:1px solid var(--border);box-shadow:var(--shadow);
-      cursor:pointer;transition:all .2s;overflow:hidden;
-    }
-    .cab-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px);border-color:#bfdbfe}
-    .cab-card-top{
-      padding:20px;border-bottom:1px solid var(--border);
-      background:linear-gradient(135deg,#eff6ff 0%,#f5f3ff 100%);
-    }
-    .cab-card-body{padding:16px 20px}
-    .cab-header{display:flex;align-items:center;justify-content:space-between}
-    .cab-icon{
-      width:40px;height:40px;border-radius:10px;flex-shrink:0;
-      background:linear-gradient(135deg,#3b82f6,#8b5cf6);
-      display:flex;align-items:center;justify-content:center;font-size:18px;
-      box-shadow:0 4px 10px rgba(59,130,246,.25);
-    }
-    .cab-badge{
-      display:inline-flex;align-items:center;gap:5px;
-      padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;
-      background:var(--success-bg);color:var(--success);border:1px solid var(--success-border);
-    }
-    .cab-name{font-size:16px;font-weight:700;color:var(--text);margin:12px 0 2px}
-    .cab-date{font-size:12px;color:var(--text3)}
-    .cab-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}
-    .cab-tag{
-      font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;
-      background:var(--accent-light);color:var(--accent-text);
-      border:1px solid #bfdbfe;
-    }
-    .cab-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1px solid var(--border);background:var(--surface2)}
-    .cab-footer-text{font-size:12px;color:var(--text3)}
-    .cab-arrow{color:var(--accent);font-size:18px;font-weight:700;transition:transform .2s}
-    .cab-card:hover .cab-arrow{transform:translateX(4px)}
+    /* ── Charts ── */
+    .chart-card{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);margin-bottom:14px}
+    .chart-title{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:14px}
+    .chart-wrap{overflow-x:auto;overflow-y:visible;padding-bottom:4px}
+    .chart-empty{text-align:center;padding:36px;color:var(--txt3);font-size:12px}
+    .bar-val{font-family:'Inter',sans-serif;font-size:8px;fill:#64748b}
+    .bar-lbl{font-family:'Inter',sans-serif;font-size:8px;fill:#94a3b8}
 
-    /* ── Table ── */
-    .table-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
-    .table-toolbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
-    .table-ttl{font-size:14px;font-weight:700;color:var(--text)}
-    .table-cnt{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--accent-light);color:var(--accent-text)}
-    table{width:100%;border-collapse:collapse}
-    thead th{
-      background:#f8fafc;padding:10px 16px;text-align:left;
-      font-size:11px;font-weight:700;text-transform:uppercase;
-      letter-spacing:.5px;color:var(--text3);
-      border-bottom:1px solid var(--border);white-space:nowrap;
-    }
-    tbody td{padding:11px 16px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);transition:background .1s}
-    tbody tr:last-child td{border-bottom:none}
-    tbody tr:hover td{background:#f8fafc;color:var(--text)}
+    /* ── Horizontal bars ── */
+    .hbar-row{margin-bottom:10px}
+    .hbar-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+    .hbar-lbl{font-size:11.5px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+    .hbar-val{font-size:11.5px;font-weight:600;color:var(--txt);white-space:nowrap;margin-left:8px}
+    .hbar-track{height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+    .hbar-fill{height:100%;border-radius:3px;transition:width .5s}
+
+    /* ── Stock bar ── */
+    .sbar{width:80px;height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+    .sfill{height:100%;border-radius:3px}
+
+    /* ── Cab cards ── */
+    .cab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+    .cab-card{background:var(--white);border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:all .2s;box-shadow:var(--sh)}
+    .cab-card:hover{box-shadow:var(--shl);transform:translateY(-3px);border-color:#bfdbfe}
+    .cab-top{padding:16px;background:linear-gradient(135deg,#eff6ff,#f5f3ff);border-bottom:1px solid var(--bd)}
+    .cab-hd{display:flex;align-items:center;justify-content:space-between}
+    .cab-ico{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 10px rgba(59,130,246,.22)}
+    .cab-name{font-size:14px;font-weight:700;color:var(--txt);margin:10px 0 2px}
+    .cab-dt{font-size:11px;color:var(--txt3);margin-bottom:8px}
+    .cab-tags{display:flex;gap:4px;flex-wrap:wrap}
+    .tag{font-size:10.5px;font-weight:500;padding:2px 8px;border-radius:20px;background:var(--acc-l);color:var(--acc-t);border:1px solid #bfdbfe}
+    .cab-ft{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--bd);background:var(--s2)}
+    .cab-ft-t{font-size:11px;color:var(--txt3)}
+    .cab-arr{color:var(--acc);font-size:16px;transition:transform .2s}
+    .cab-card:hover .cab-arr{transform:translateX(4px)}
 
     /* ── Tabs ── */
-    .tabs{display:flex;background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:4px;gap:2px;margin-bottom:22px;box-shadow:var(--shadow);width:fit-content}
-    .tab{padding:7px 16px;border-radius:var(--r-sm);font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
-    .tab:hover{color:var(--text2);background:var(--surface2)}
-    .tab.active{background:var(--accent);color:#fff;box-shadow:0 1px 3px rgba(37,99,235,.3)}
+    .tabs{display:flex;background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:4px;gap:2px;box-shadow:var(--sh);flex-wrap:wrap}
+    .tab{padding:6px 14px;border-radius:var(--rs);font-size:12.5px;font-weight:500;color:var(--txt3);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .tab:hover{color:var(--txt2);background:var(--s2)}
+    .tab.on{background:var(--acc);color:#fff;box-shadow:0 1px 3px rgba(37,99,235,.3)}
+
+    /* ── Table ── */
+    .tcard{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh)}
+    .ttb{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bd);flex-wrap:wrap;gap:8px}
+    .ttl{font-size:13px;font-weight:700;color:var(--txt)}
+    .tcnt{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--acc-l);color:var(--acc-t)}
+    .tovfl{overflow-x:auto}
+    table{width:100%;border-collapse:collapse}
+    thead th{background:var(--s2);padding:9px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);border-bottom:1px solid var(--bd);white-space:nowrap}
+    tbody td{padding:10px 14px;font-size:12.5px;color:var(--txt2);border-bottom:1px solid var(--bd);transition:background .1s}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr:hover td{background:var(--s2);color:var(--txt)}
 
     /* ── Badges ── */
-    .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
-    .badge-green{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
-    .badge-red{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
-    .badge-yellow{background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border)}
-    .badge-grey{background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0}
-    .badge-blue{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
-    .dot{width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+    .bdg{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:600;white-space:nowrap}
+    .bdg-g{background:var(--ok-b);color:var(--ok);border:1px solid var(--ok-e)}
+    .bdg-r{background:var(--er-b);color:var(--er);border:1px solid var(--er-e)}
+    .bdg-y{background:var(--wa-b);color:var(--wa);border:1px solid var(--wa-e)}
+    .bdg-b{background:var(--in-b);color:var(--in);border:1px solid var(--in-e)}
+    .bdg-x{background:var(--s2);color:#64748b;border:1px solid var(--bd)}
 
-    /* ── Filter bar ── */
-    .filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-    .filter-lbl{font-size:12px;font-weight:600;color:var(--text3)}
-    .date-in{
-      background:var(--white);border:1px solid var(--border2);color:var(--text);
-      padding:6px 10px;border-radius:var(--r-sm);font-size:12px;font-family:inherit;
-      outline:none;transition:border-color .15s;box-shadow:var(--shadow);
-    }
-    .date-in:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
-
-    /* ── Forms ── */
-    .form-group{margin-bottom:14px}
-    .form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:5px}
-    .form-input{
-      width:100%;background:var(--white);border:1px solid var(--border2);color:var(--text);
-      padding:8px 12px;border-radius:var(--r-sm);font-size:13px;font-family:inherit;
-      outline:none;transition:all .15s;box-shadow:var(--shadow);
-    }
-    .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
-    .form-input::placeholder{color:var(--text3)}
+    /* ── Filters ── */
+    .fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .fbar-l{font-size:11.5px;font-weight:600;color:var(--txt3)}
+    .din{background:var(--white);border:1px solid var(--bd2);color:var(--txt);padding:6px 9px;border-radius:var(--rs);font-size:11.5px;font-family:inherit;outline:none;transition:border .15s;box-shadow:var(--sh)}
+    .din:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-l)}
 
     /* ── Panel ── */
-    .panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
-    .panel-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px}
-    .panel-hint{background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--r-sm);padding:10px 12px;font-size:12px;color:#1e40af;margin-bottom:14px;line-height:1.6}
+    .panel{background:var(--white);border:1px solid var(--bd);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+    .panel-t{font-size:13.5px;font-weight:700;color:var(--txt);margin-bottom:12px}
+    .panel-hint{background:var(--in-b);border:1px solid var(--in-e);border-radius:var(--rs);padding:9px 11px;font-size:11.5px;color:#1e40af;margin-bottom:12px;line-height:1.6}
+
+    /* ── Form ── */
+    .fg{margin-bottom:12px}
+    .fl{display:block;font-size:11.5px;font-weight:600;color:var(--txt2);margin-bottom:4px}
+    .fi{width:100%;background:var(--white);border:1px solid var(--bd2);color:var(--txt);padding:8px 11px;border-radius:var(--rs);font-size:12.5px;font-family:inherit;outline:none;transition:all .15s;box-shadow:var(--sh)}
+    .fi:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-l)}
+    .fi::placeholder{color:var(--txt3)}
 
     /* ── Modal ── */
-    .overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s ease}
-    .modal{background:var(--white);border-radius:var(--r-lg);padding:24px;width:100%;max-width:460px;box-shadow:var(--shadow-lg),0 0 0 1px var(--border);animation:fadeUp .22s cubic-bezier(.22,1,.36,1)}
-    .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-    .modal-title{font-size:16px;font-weight:700;color:var(--text)}
-    .modal-close{padding:5px;border-radius:5px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;transition:all .15s}
-    .modal-close:hover{background:var(--danger-bg);color:var(--danger)}
-    .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+    .overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s ease}
+    .modal{background:var(--white);border-radius:var(--rl);padding:22px;width:100%;max-width:460px;box-shadow:var(--shl),0 0 0 1px var(--bd);animation:fadeUp .22s cubic-bezier(.22,1,.36,1)}
+    .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .mt{font-size:15px;font-weight:700;color:var(--txt)}
+    .mx{padding:4px;border-radius:4px;background:none;border:none;color:var(--txt3);cursor:pointer;font-size:15px;line-height:1;transition:all .15s}
+    .mx:hover{background:var(--er-b);color:var(--er)}
+    .mft{display:flex;gap:7px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--bd)}
+
+    /* ── Alert ── */
+    .alrt{padding:9px 12px;border-radius:var(--rs);font-size:12.5px;margin-bottom:10px;display:flex;align-items:flex-start;gap:7px;animation:fadeUp .2s ease}
+    .alrt-e{background:var(--er-b);color:var(--er);border:1px solid var(--er-e)}
+    .alrt-s{background:var(--ok-b);color:var(--ok);border:1px solid var(--ok-e)}
+    .alrt-i{background:var(--in-b);color:var(--in);border:1px solid var(--in-e)}
+
+    /* ── Loader ── */
+    .spinner{width:15px;height:15px;border:2px solid var(--bd2);border-top-color:var(--acc);border-radius:50%;animation:spin .65s linear infinite;display:inline-block}
+    .loader{display:flex;align-items:center;justify-content:center;padding:50px;color:var(--txt3);gap:10px;font-size:12.5px}
+    .empty{text-align:center;padding:50px 20px}
+    .empty-ic{font-size:36px;margin-bottom:10px}
+    .empty-t{font-size:14px;font-weight:700;color:var(--txt2);margin-bottom:3px}
+    .empty-s{font-size:12px;color:var(--txt3)}
 
     /* ── Login ── */
-    .login-wrap{min-height:100vh;display:flex;background:linear-gradient(135deg,#eff6ff 0%,#f5f3ff 50%,#fdf2f8 100%)}
-    .login-left{
-      width:420px;flex-shrink:0;background:var(--sb-bg);
-      display:flex;flex-direction:column;padding:40px;
-      position:relative;overflow:hidden;
-    }
-    .login-left::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,130,246,.2),transparent 60%),radial-gradient(ellipse 60% 40% at 100% 100%,rgba(139,92,246,.15),transparent 55%)}
-    .login-left-content{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}
-    .login-brand{display:flex;align-items:center;gap:12px;margin-bottom:auto}
-    .login-brand-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 20px rgba(59,130,246,.35)}
-    .login-brand-name{font-size:18px;font-weight:800;color:#f1f5f9}
-    .login-brand-sub{font-size:11px;color:#64748b;margin-top:1px}
-    .login-tagline{margin-bottom:40px}
-    .login-tagline h2{font-size:26px;font-weight:800;color:#f1f5f9;line-height:1.3;margin-bottom:10px}
-    .login-tagline p{font-size:13px;color:#64748b;line-height:1.6}
-    .login-features{display:flex;flex-direction:column;gap:10px}
-    .login-feat{display:flex;align-items:center;gap:10px;font-size:12px;color:#94a3b8}
-    .login-feat-icon{width:22px;height:22px;border-radius:6px;background:rgba(59,130,246,.2);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
-
-    .login-right{flex:1;display:flex;align-items:center;justify-content:center;padding:40px}
-    .login-card{background:var(--white);border-radius:20px;padding:40px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);border:1px solid var(--border)}
-    .login-title{font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px;letter-spacing:-.4px}
-    .login-sub{font-size:13px;color:var(--text3);margin-bottom:26px}
-    .login-btn{
-      width:100%;padding:10px;border:none;font-family:inherit;font-size:14px;font-weight:700;
-      border-radius:var(--r-sm);cursor:pointer;transition:all .2s;
-      background:var(--accent);color:#fff;
-      box-shadow:0 2px 6px rgba(37,99,235,.3);
-    }
+    .login-wrap{min-height:100vh;display:flex;background:linear-gradient(135deg,#eff6ff,#f5f3ff,#fdf2f8)}
+    .login-l{width:400px;flex-shrink:0;background:var(--sb);display:flex;flex-direction:column;padding:36px;position:relative;overflow:hidden}
+    .login-l::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(59,130,246,.2),transparent 60%),radial-gradient(ellipse 60% 40% at 100% 100%,rgba(139,92,246,.15),transparent 55%)}
+    .login-lc{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}
+    .login-brand{display:flex;align-items:center;gap:11px;margin-bottom:auto}
+    .login-bic{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:20px}
+    .login-bn{font-size:16px;font-weight:800;color:#f1f5f9}
+    .login-bs{font-size:10px;color:#64748b;margin-top:1px}
+    .login-tg{margin-bottom:36px}
+    .login-tg h2{font-size:24px;font-weight:800;color:#f1f5f9;line-height:1.3;margin-bottom:8px}
+    .login-tg p{font-size:12px;color:#64748b;line-height:1.6}
+    .login-feats{display:flex;flex-direction:column;gap:9px}
+    .login-f{display:flex;align-items:center;gap:9px;font-size:12px;color:#94a3b8}
+    .login-fic{width:20px;height:20px;border-radius:5px;background:rgba(59,130,246,.2);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+    .login-r{flex:1;display:flex;align-items:center;justify-content:center;padding:36px}
+    .login-card{background:var(--white);border-radius:18px;padding:36px;width:100%;max-width:370px;box-shadow:var(--shl);border:1px solid var(--bd)}
+    .login-title{font-size:20px;font-weight:800;color:var(--txt);margin-bottom:3px;letter-spacing:-.3px}
+    .login-sub{font-size:12.5px;color:var(--txt3);margin-bottom:22px}
+    .login-btn{width:100%;padding:9px;border:none;font-family:inherit;font-size:13.5px;font-weight:700;border-radius:var(--rs);cursor:pointer;transition:all .2s;background:var(--acc);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.3)}
     .login-btn:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 6px 16px rgba(37,99,235,.35)}
     .login-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 
-    /* ── Alert ── */
-    .alert{padding:10px 14px;border-radius:var(--r-sm);font-size:13px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px;animation:fadeUp .2s ease}
-    .alert-error{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
-    .alert-success{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
-    .alert-info{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
+    /* ── Perm ── */
+    .perm-cab{background:var(--s2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;margin-bottom:8px}
+    .perm-cn{font-size:12.5px;font-weight:700;color:var(--txt);margin-bottom:8px}
+    .perm-cks{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .perm-ck{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--txt2);cursor:pointer}
+    .perm-ck input{width:13px;height:13px;accent-color:var(--acc);cursor:pointer}
 
-    /* ── Loader ── */
-    .spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .65s linear infinite;display:inline-block}
-    .loader{display:flex;align-items:center;justify-content:center;padding:56px;color:var(--text3);gap:12px;font-size:13px}
-
-    /* ── Empty ── */
-    .empty{text-align:center;padding:56px 24px}
-    .empty-icon{font-size:40px;margin-bottom:12px}
-    .empty-title{font-size:15px;font-weight:700;color:var(--text2);margin-bottom:4px}
-    .empty-sub{font-size:13px;color:var(--text3)}
-
-    /* ── Perms grid ── */
-    .perm-cab{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px}
-    .perm-cab-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px}
-    .perm-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .perm-check{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text2);cursor:pointer}
-    .perm-check input{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
-
-    .flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
-    .gap-2{gap:8px}.gap-3{gap:12px}.mt-4{margin-top:16px}
-    .text-sm{font-size:12px}.text-muted{color:var(--text3)}.font-bold{font-weight:700}
-    .font-semibold{font-weight:600}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* Util */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .num{font-variant-numeric:tabular-nums}
+    .bold{font-weight:700}.semi{font-weight:600}.muted{color:var(--txt3)}
+    .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .flex{display:flex}.ic{align-items:center}.jb{justify-content:space-between}.g2{gap:8px}.g3{gap:12px}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState, useEffect} = React;
+const {useState,useEffect}=React;
 
-const api = {
-  token: () => localStorage.getItem('token'),
-  headers: () => ({'Content-Type':'application/json','Authorization':`Bearer ${api.token()}`}),
-  async req(method, path, body){
-    const r = await fetch(path,{method,headers:api.headers(),body:body?JSON.stringify(body):undefined});
+const api={
+  token:()=>localStorage.getItem('token'),
+  h:()=>({'Content-Type':'application/json','Authorization':`Bearer ${api.token()}`}),
+  async req(m,p,b){
+    const r=await fetch(p,{method:m,headers:api.h(),body:b?JSON.stringify(b):undefined});
     if(r.status===204)return null;
-    const d = await r.json().catch(()=>({}));
+    const d=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(d.detail||`HTTP ${r.status}`);
     return d;
   },
-  get:p=>api.req('GET',p), post:(p,b)=>api.req('POST',p,b),
-  put:(p,b)=>api.req('PUT',p,b), patch:(p,b)=>api.req('PATCH',p,b),
+  get:p=>api.req('GET',p),
+  post:(p,b)=>api.req('POST',p,b),
+  put:(p,b)=>api.req('PUT',p,b),
+  patch:(p,b)=>api.req('PATCH',p,b),
   del:p=>api.req('DELETE',p),
 };
 
-const fmt = {
-  num: n => n==null?'—':Number(n).toLocaleString('ru-RU'),
-  rub: n => n==null?'—':Number(n).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}),
-  date: s => s?s.slice(0,10):'—',
+const fmt={
+  n:n=>n==null?'—':Number(n).toLocaleString('ru-RU'),
+  r:n=>n==null?'—':Number(n).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}),
+  d:s=>s?s.slice(0,10):'—',
+  pct:(a,b)=>b>0?Math.round(a/b*100)+'%':'—',
 };
 
-function useData(fn, deps=[]){
+function useData(fn,deps){
   const [data,setData]=useState(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
   useEffect(()=>{
-    let alive=true; setLoading(true); setError('');
+    let alive=true;
+    setLoading(true);setError('');
     fn().then(d=>{if(alive){setData(d);setLoading(false);}})
        .catch(e=>{if(alive){setError(e.message);setLoading(false);}});
     return()=>{alive=false;};
-  }, deps);
-  return {data,loading,error};
+  },deps);
+  return{data,loading,error};
 }
 
-function Loader(){return <div className="loader"><div className="spinner"/>Загрузка...</div>}
-function Alert({type='error',children}){return <div className={`alert alert-${type}`}><span>{type==='error'?'⚠':type==='success'?'✓':'ℹ'}</span>{children}</div>}
-function Modal({title,onClose,children,footer}){
-  return <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
-    <div className="modal">
-      <div className="modal-head">
-        <div className="modal-title">{title}</div>
-        <button className="modal-close" onClick={onClose}>✕</button>
-      </div>
-      {children}
-      {footer&&<div className="modal-footer">{footer}</div>}
+/* ── Charts ── */
+function BarChart({data,vkey,lkey,color}){
+  if(!data||!data.length)return<div className="chart-empty">Нет данных — нажмите «Обновить данные»</div>;
+  const c=color||'#3b82f6';
+  const vals=data.map(d=>+(d[vkey])||0);
+  const max=Math.max(...vals,1);
+  const H=108,slot=Math.max(22,Math.min(48,580/data.length));
+  const bw=slot*0.65,W=slot*data.length;
+  return(
+    <div className="chart-wrap">
+      <svg viewBox={`0 0 ${W} ${H+30}`} style={{width:'100%',minWidth:W,height:H+30,display:'block',overflow:'visible'}}>
+        {[.25,.5,.75,1].map(f=>(
+          <line key={f} x1={0} y1={H*(1-f)} x2={W} y2={H*(1-f)} stroke="#e2e8f0" strokeWidth={.5} strokeDasharray="3,2"/>
+        ))}
+        {data.map((d,i)=>{
+          const h=Math.max(2,vals[i]/max*H);
+          const x=i*slot+(slot-bw)/2;
+          const cx=i*slot+slot/2;
+          return(
+            <g key={i}>
+              <rect x={x} y={H-h} width={bw} height={h} fill={c} rx={2} opacity={.87}/>
+              {h>16&&vals[i]>0&&(
+                <text x={cx} y={H-h-3} textAnchor="middle" className="bar-val">
+                  {vals[i]>=1000?Math.round(vals[i]/1000)+'k':Math.round(vals[i])}
+                </text>
+              )}
+              <text x={cx} y={H+20} textAnchor="middle" className="bar-lbl">{(d[lkey]||'').slice(5)}</text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
-  </div>;
+  );
 }
 
-// ── Login ─────────────────────────────────────────────────────────────────────
+function LineChart({data,vkey,lkey,color}){
+  if(!data||!data.length)return<div className="chart-empty">Нет данных</div>;
+  const c=color||'#059669';
+  const vals=data.map(d=>+(d[vkey])||0);
+  const max=Math.max(...vals,1);
+  const H=100,W=580,n=data.length;
+  const xp=i=>n>1?i/(n-1)*W:W/2;
+  const pts=vals.map((v,i)=>`${xp(i)},${H-v/max*H}`).join(' ');
+  const area=`M${vals.map((v,i)=>`${xp(i)},${H-v/max*H}`).join('L')}L${xp(n-1)},${H}L${xp(0)},${H}Z`;
+  return(
+    <div className="chart-wrap">
+      <svg viewBox={`0 0 ${W} ${H+28}`} style={{width:'100%',height:H+28,display:'block'}}>
+        <defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={c} stopOpacity=".22"/><stop offset="100%" stopColor={c} stopOpacity=".02"/></linearGradient></defs>
+        {[.25,.5,.75,1].map(f=><line key={f} x1={0} y1={H*(1-f)} x2={W} y2={H*(1-f)} stroke="#e2e8f0" strokeWidth={.5} strokeDasharray="3,2"/>)}
+        <path d={area} fill="url(#lg1)"/>
+        <polyline points={pts} fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+        {vals.map((v,i)=><circle key={i} cx={xp(i)} cy={H-v/max*H} r={2.5} fill={c} stroke="#fff" strokeWidth={1.5}/>)}
+        {data.map((d,i)=><text key={i} x={xp(i)} y={H+20} textAnchor="middle" className="bar-lbl">{(d[lkey]||'').slice(5)}</text>)}
+      </svg>
+    </div>
+  );
+}
+
+function HBarRow({label,value,max,color,sub}){
+  const pct=max>0?Math.max(2,value/max*100):0;
+  return(
+    <div className="hbar-row">
+      <div className="hbar-top">
+        <span className="hbar-lbl" title={label}>{label}</span>
+        <span className="hbar-val">{fmt.n(value)}{sub&&<span className="muted" style={{fontWeight:400,marginLeft:4}}>{sub}</span>}</span>
+      </div>
+      <div className="hbar-track"><div className="hbar-fill" style={{width:`${pct}%`,background:color||'#3b82f6'}}/></div>
+    </div>
+  );
+}
+
+/* ── UI ── */
+function Loader(){return<div className="loader"><div className="spinner"/>Загрузка...</div>;}
+function Err({msg}){return<div className="alrt alrt-e">⚠ {msg}</div>;}
+function Alert({type,children}){return<div className={`alrt alrt-${type||'e'}`}>{type==='s'?'✓':type==='i'?'ℹ':'⚠'} {children}</div>;}
+
+function Modal({title,onClose,children,footer}){
+  return(
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal">
+        <div className="mh"><div className="mt">{title}</div><button className="mx" onClick={onClose}>✕</button></div>
+        {children}
+        {footer&&<div className="mft">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({label,value,icon,acc,iconBg,vc,sub,delay}){
+  return(
+    <div className="kcard aup" style={{animationDelay:`${delay||0}s`}}>
+      <div className="k-acc" style={{background:acc||'#3b82f6'}}/>
+      <div className="k-inner">
+        <div className="k-ic" style={{background:iconBg||'#eff6ff'}}>{icon}</div>
+        <div className="k-lbl">{label}</div>
+        <div className={`k-val num ${vc||''}`}>{value}</div>
+        {sub&&<div className="k-sub">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function DataTable({title,count,empty,head,rows}){
+  return(
+    <div className="tcard">
+      <div className="ttb">
+        <div className="flex ic g2"><span className="ttl">{title}</span><span className="tcnt">{count}</span></div>
+      </div>
+      {!rows||rows.length===0
+        ?<div className="empty"><div className="empty-ic">📭</div><div className="empty-t">{empty}</div><div className="empty-s">Нажмите «Обновить данные» в правом верхнем углу</div></div>
+        :<div className="tovfl"><table><thead><tr>{head.map((h,i)=><th key={i}>{h}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j}>{c}</td>)}</tr>)}</tbody></table></div>
+      }
+    </div>
+  );
+}
+
+function StatusBadge({s}){
+  if(!s)return<span className="bdg bdg-x">—</span>;
+  const l=s.toLowerCase();
+  if(l.includes('cancel')||l.includes('отмен'))return<span className="bdg bdg-r"><span className="dot"/>Отмена</span>;
+  if(l.includes('return')||l.includes('возврат')||l.includes('defect'))return<span className="bdg bdg-y"><span className="dot"/>Возврат</span>;
+  if(l.includes('sell')||l.includes('deliver')||l.includes('complete')||l.includes('sold'))return<span className="bdg bdg-g"><span className="dot"/>Продажа</span>;
+  if(l.includes('new')||l.includes('created')||l.includes('waiting'))return<span className="bdg bdg-b"><span className="dot"/>Новый</span>;
+  if(l.includes('sort')||l.includes('confirm'))return<span className="bdg bdg-b"><span className="dot"/>В пути</span>;
+  return<span className="bdg bdg-x">{s}</span>;
+}
+
+function AlertBadge({a}){
+  if(a==='red')return<span className="bdg bdg-r"><span className="dot"/>{'<'}7д</span>;
+  if(a==='yellow')return<span className="bdg bdg-y"><span className="dot"/>7-14д</span>;
+  if(a==='green')return<span className="bdg bdg-g"><span className="dot"/>Норма</span>;
+  return<span className="bdg bdg-x">Нет продаж</span>;
+}
+
+/* ── Login ── */
 function LoginPage({onLogin}){
   const [login,setLogin]=useState('');
   const [pw,setPw]=useState('');
@@ -472,425 +439,632 @@ function LoginPage({onLogin}){
     try{const d=await api.post('/api/auth/login',{login,password:pw});localStorage.setItem('token',d.token);onLogin(d);}
     catch(e){setErr(e.message);}finally{setLoading(false);}
   }
-  return <div className="login-wrap">
-    <div className="login-left">
-      <div className="login-left-content">
-        <div className="login-brand">
-          <div className="login-brand-icon">🛒</div>
-          <div><div className="login-brand-name">WB Dashboard</div><div className="login-brand-sub">Wildberries Analytics</div></div>
+  return(
+    <div className="login-wrap">
+      <div className="login-l">
+        <div className="login-lc">
+          <div className="login-brand">
+            <div className="login-bic">🛒</div>
+            <div><div className="login-bn">WB Dashboard</div><div className="login-bs">Wildberries Analytics</div></div>
+          </div>
+          <div className="login-tg">
+            <h2>Аналитика всех кабинетов в одном месте</h2>
+            <p>Заказы, остатки, реклама и финансы — под контролем в реальном времени.</p>
+          </div>
+          <div className="login-feats">
+            {[['📊','Графики заказов и выручки по дням'],['📦','Умные алерты по остаткам склада'],['🎯','CPO и эффективность рекламных кампаний'],['💰','Финансовый отчёт с разбивкой']].map(([ic,tx])=>(
+              <div key={tx} className="login-f"><div className="login-fic">{ic}</div>{tx}</div>
+            ))}
+          </div>
         </div>
-        <div className="login-tagline">
-          <h2>Все кабинеты в одном месте</h2>
-          <p>Заказы, остатки, реклама и финансы — под контролем в реальном времени.</p>
-        </div>
-        <div className="login-features">
-          {[['📦','Заказы день за днём'],['🏭','Умные алерты по остаткам'],['📣','Расходы на рекламу (РК)'],['💰','Финансы и выплаты']].map(([ic,tx])=>(
-            <div key={tx} className="login-feat"><div className="login-feat-icon">{ic}</div>{tx}</div>
-          ))}
+      </div>
+      <div className="login-r">
+        <div className="login-card aup">
+          <div className="login-title">Вход в систему</div>
+          <div className="login-sub">WB Dashboard · Мониторинг кабинетов</div>
+          {err&&<Alert type="e">{err}</Alert>}
+          <form onSubmit={submit}>
+            <div className="fg"><label className="fl">Логин</label><input className="fi" value={login} onChange={e=>setLogin(e.target.value)} placeholder="Введите логин" autoFocus required/></div>
+            <div className="fg" style={{marginBottom:18}}><label className="fl">Пароль</label><input className="fi" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" required/></div>
+            <button className="login-btn" type="submit" disabled={loading}>
+              {loading?<><span className="spinner" style={{borderColor:'rgba(255,255,255,.3)',borderTopColor:'#fff',width:12,height:12}}/> Входим...</>:'Войти →'}
+            </button>
+          </form>
         </div>
       </div>
     </div>
-    <div className="login-right">
-      <div className="login-card anim-up">
-        <div className="login-title">Вход в систему</div>
-        <div className="login-sub">Введите логин и пароль для доступа</div>
-        {err&&<Alert type="error">{err}</Alert>}
-        <form onSubmit={submit}>
-          <div className="form-group"><label className="form-label">Логин</label><input className="form-input" value={login} onChange={e=>setLogin(e.target.value)} placeholder="Введите логин" autoFocus required/></div>
-          <div className="form-group" style={{marginBottom:20}}><label className="form-label">Пароль</label><input className="form-input" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" required/></div>
-          <button className="login-btn" type="submit" disabled={loading}>{loading?<><span className="spinner" style={{borderColor:'rgba(255,255,255,.3)',borderTopColor:'#fff',width:13,height:13}}/> Вход...</>:'Войти →'}</button>
-        </form>
-      </div>
-    </div>
-  </div>;
+  );
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
-function Sidebar({page,setPage,isAdmin,user,onLogout,cabinetName}){
-  return <aside className="sidebar">
-    <div className="sb-brand">
-      <div className="sb-brand-inner">
+/* ── Sidebar ── */
+function Sidebar({page,nav,isAdmin,user,onLogout,cabName}){
+  return(
+    <aside className="sb">
+      <div className="sb-brand">
         <div className="sb-logo">🛒</div>
-        <div><div className="sb-name">WB Dashboard</div><div className="sb-tag">Wildberries</div></div>
+        <div><div className="sb-name">WB Dashboard</div><div className="sb-sub">Wildberries</div></div>
       </div>
-    </div>
-    <nav className="sb-nav">
-      <div className="sb-section">Основное</div>
-      <div className={`sb-item${page==='dashboard'||page==='cabinet'?' active':''}`} onClick={()=>setPage('dashboard')}>
-        <div className="sb-icon">⬡</div>Обзор
+      <nav className="sb-nav">
+        <div className="sb-sec">Основное</div>
+        <div className={`sb-item${page==='dashboard'||page==='cabinet'?' on':''}`} onClick={()=>nav('dashboard')}>
+          <div className="sb-ic">⬡</div>Обзор
+        </div>
+        {isAdmin&&<>
+          <div className="sb-div"/>
+          <div className="sb-sec">Управление</div>
+          <div className={`sb-item${page==='cabs'?' on':''}`} onClick={()=>nav('cabs')}>
+            <div className="sb-ic">🗄</div>Кабинеты WB
+          </div>
+          <div className={`sb-item${page==='users'?' on':''}`} onClick={()=>nav('users')}>
+            <div className="sb-ic">👥</div>Пользователи
+          </div>
+        </>}
+        {cabName&&<><div className="sb-div"/><div className="sb-cab"><div className="sb-cab-l">Открыт кабинет</div><div className="sb-cab-n">{cabName}</div></div></>}
+      </nav>
+      <div className="sb-foot">
+        <div className="sb-user">
+          <div className="sb-ava">{(user?.login||'?')[0].toUpperCase()}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="sb-uname">{user?.login}</div>
+            <div className="sb-urole">{isAdmin?'Администратор':'Просмотр'}</div>
+          </div>
+          <button className="sb-logout" onClick={onLogout} title="Выйти">⏻</button>
+        </div>
       </div>
-      {isAdmin&&<>
-        <div className="sb-divider"/>
-        <div className="sb-section">Управление</div>
-        <div className={`sb-item${page==='admin-cabinets'?' active':''}`} onClick={()=>setPage('admin-cabinets')}>
-          <div className="sb-icon">🗄</div>Кабинеты WB
-        </div>
-        <div className={`sb-item${page==='admin-users'?' active':''}`} onClick={()=>setPage('admin-users')}>
-          <div className="sb-icon">👥</div>Пользователи
-        </div>
-      </>}
-      {page==='cabinet'&&cabinetName&&<>
-        <div className="sb-divider"/>
-        <div className="sb-cab-badge">
-          <div className="sb-cab-label">Кабинет</div>
-          <div className="sb-cab-name">{cabinetName}</div>
-        </div>
-      </>}
-    </nav>
-    <div className="sb-footer">
-      <div className="sb-user">
-        <div className="sb-ava">{(user?.login||'?')[0].toUpperCase()}</div>
-        <div className="sb-user-info">
-          <div className="sb-uname">{user?.login}</div>
-          <div className="sb-urole">{isAdmin?'Администратор':'Просмотр'}</div>
-        </div>
-        <button className="sb-logout" onClick={onLogout} title="Выйти">⏻</button>
-      </div>
-    </div>
-  </aside>;
+    </aside>
+  );
 }
 
-// ── Topbar ────────────────────────────────────────────────────────────────────
+/* ── Topbar ── */
 function Topbar({crumbs,isAdmin}){
   const [syncing,setSyncing]=useState(false);
-  async function sync(){setSyncing(true);try{await api.post('/api/admin/sync');}catch(e){}setTimeout(()=>setSyncing(false),2000);}
-  return <div className="topbar">
-    <div className="breadcrumb">
-      {crumbs.map((c,i)=><React.Fragment key={i}>
-        {i>0&&<span className="bc-sep">›</span>}
-        <span className={i===crumbs.length-1?'bc-current':'bc-item'}>{c}</span>
-      </React.Fragment>)}
-    </div>
-    <div className="topbar-right">
-      <div className="status-pill"><div className="status-dot"/>Онлайн</div>
-      {isAdmin&&<button className="sync-btn" onClick={sync} disabled={syncing}>
-        <span style={syncing?{animation:'spin .8s linear infinite',display:'inline-block'}:{}}>↻</span>
-        {syncing?'Синхронизация...':'Обновить данные'}
-      </button>}
-    </div>
-  </div>;
-}
-
-// ── KPI Card ──────────────────────────────────────────────────────────────────
-function KpiCard({label,value,icon,color='blue',delay=0}){
-  return <div className="kpi-card anim-up" style={{animationDelay:`${delay}s`}}>
-    <div className={`kpi-card-accent kpi-card-accent-${color}`}/>
-    <div className="kpi-inner">
-      <div className={`kpi-icon-wrap kpi-icon-${color}`}>{icon}</div>
-      <div className="kpi-label">{label}</div>
-      <div className={`kpi-value num${color==='green'?' kpi-value-green':color==='red'?' kpi-value-red':color==='orange'?' kpi-value-orange':''}`}>{value}</div>
-    </div>
-  </div>;
-}
-
-// ── Data Table ────────────────────────────────────────────────────────────────
-function DataTable({title,count,empty,head,rows}){
-  return <div className="table-card">
-    <div className="table-toolbar">
-      <span className="table-ttl">{title}</span>
-      <span className="table-cnt">{count} записей</span>
-    </div>
-    {!rows||rows.length===0
-      ?<div className="empty"><div className="empty-icon">📭</div><div className="empty-title">{empty}</div><div className="empty-sub">Данные появятся после синхронизации</div></div>
-      :<div style={{overflowX:'auto'}}><table>
-        <thead><tr>{head.map((h,i)=><th key={i}>{h}</th>)}</tr></thead>
-        <tbody>{rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody>
-      </table></div>
-    }
-  </div>;
-}
-
-// ── Dashboard ─────────────────────────────────────────────────────────────────
-function Dashboard({onOpenCabinet}){
-  const {data,loading,error}=useData(()=>api.get('/api/cabinets'));
-  if(loading)return<Loader/>;
-  if(error)return<Alert>{error}</Alert>;
-  return <div>
-    <div className="page-header">
-      <div className="page-row"><div>
-        <div className="page-title">Обзор кабинетов</div>
-        <div className="page-sub">{data?.length||0} кабинет(ов) · данные каждые 10 мин</div>
-      </div></div>
-    </div>
-    {!data||data.length===0
-      ?<div className="empty"><div className="empty-icon">🗄</div><div className="empty-title">Кабинеты не добавлены</div><div className="empty-sub">Перейдите в «Кабинеты WB» для добавления</div></div>
-      :<div className="cab-grid">
-        {data.map((c,i)=><div key={c.id} className="cab-card anim-up" style={{animationDelay:`${i*.07}s`}} onClick={()=>onOpenCabinet(c)}>
-          <div className="cab-card-top">
-            <div className="cab-header">
-              <div className="cab-icon">🏪</div>
-              <span className="cab-badge"><span className="dot"/>Активен</span>
-            </div>
-            <div className="cab-name">{c.name}</div>
-            <div className="cab-date">Добавлен {fmt.date(c.created_at)}</div>
-            <div className="cab-tags">
-              {c.permissions?.orders&&<span className="cab-tag">📦 Заказы</span>}
-              {c.permissions?.stock&&<span className="cab-tag">🏭 Остатки</span>}
-              {c.permissions?.ads&&<span className="cab-tag">📣 Реклама</span>}
-              {c.permissions?.finances&&<span className="cab-tag">💰 Финансы</span>}
-            </div>
-          </div>
-          <div className="cab-footer">
-            <span className="cab-footer-text">Открыть аналитику</span>
-            <span className="cab-arrow">›</span>
-          </div>
-        </div>)}
+  const [lastSync,setLastSync]=useState('');
+  async function sync(){
+    setSyncing(true);
+    try{await api.post('/api/admin/sync');}catch(e){}
+    setLastSync(new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}));
+    setTimeout(()=>setSyncing(false),2000);
+  }
+  return(
+    <div className="topbar">
+      <div className="bc">
+        {crumbs.map((c,i)=><React.Fragment key={i}>{i>0&&<span className="bc-sep">›</span>}<span className={i===crumbs.length-1?'bc-cur':'bc-dim'}>{c}</span></React.Fragment>)}
       </div>
-    }
-  </div>;
+      <div className="tr">
+        <div className="online-pill"><span className="dot"/>Онлайн</div>
+        {isAdmin&&<button className="sync-btn" onClick={sync} disabled={syncing}>
+          <span className={syncing?'sync-spin':''}>↻</span>
+          {syncing?'Синхронизация...':lastSync?`Обновлено ${lastSync}`:'Обновить данные'}
+        </button>}
+      </div>
+    </div>
+  );
 }
 
-// ── Cabinet Detail ────────────────────────────────────────────────────────────
-function CabinetDetail({cabinet,onBack}){
-  const perms=cabinet.permissions||{};
-  const tabs=[perms.orders&&{id:'orders',icon:'📦',label:'Заказы'},perms.stock&&{id:'stock',icon:'🏭',label:'Остатки'},perms.ads&&{id:'ads',icon:'📣',label:'Реклама'},perms.finances&&{id:'finances',icon:'💰',label:'Финансы'}].filter(Boolean);
-  const [tab,setTab]=useState(tabs[0]?.id||'');
-  const today=new Date().toISOString().slice(0,10);
-  const week=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
-  const [df,setDf]=useState(week);
-  const [dt,setDt]=useState(today);
-  return <div>
-    <div className="page-header">
-      <div className="page-row">
-        <div className="flex items-center gap-2">
-          <button className="btn btn-ghost btn-sm" onClick={onBack}>← Назад</button>
-          <div><div className="page-title">{cabinet.name}</div><div className="page-sub">Детальная аналитика</div></div>
+/* ── Dashboard ── */
+function Dashboard({onOpen}){
+  const {data,loading,error}=useData(()=>api.get('/api/cabinets'),[]);
+  if(loading)return<Loader/>;
+  if(error)return<Err msg={error}/>;
+  return(
+    <div>
+      <div className="ph"><div className="pt">Обзор кабинетов</div><div className="ps">{data?.length||0} кабинет(ов) · синхронизация каждые 10 мин</div></div>
+      {!data?.length
+        ?<div className="empty"><div className="empty-ic">🗄</div><div className="empty-t">Кабинеты не добавлены</div><div className="empty-s">Перейдите в «Кабинеты WB» для добавления</div></div>
+        :<div className="cab-grid">
+          {data.map((c,i)=>(
+            <div key={c.id} className="cab-card aup" style={{animationDelay:`${i*.07}s`}} onClick={()=>onOpen(c)}>
+              <div className="cab-top">
+                <div className="cab-hd"><div className="cab-ico">🏪</div><span className="bdg bdg-g"><span className="dot"/>Активен</span></div>
+                <div className="cab-name">{c.name}</div>
+                <div className="cab-dt">Добавлен {fmt.d(c.created_at)}</div>
+                <div className="cab-tags">
+                  {c.permissions?.orders&&<span className="tag">📦 Заказы</span>}
+                  {c.permissions?.stock&&<span className="tag">🏭 Остатки</span>}
+                  {c.permissions?.ads&&<span className="tag">📣 Реклама</span>}
+                  {c.permissions?.finances&&<span className="tag">💰 Финансы</span>}
+                </div>
+              </div>
+              <div className="cab-ft"><span className="cab-ft-t">Открыть аналитику</span><span className="cab-arr">›</span></div>
+            </div>
+          ))}
+        </div>
+      }
+    </div>
+  );
+}
+
+/* ── Analytics Tab ── */
+function AnalyticsTab({id,df,dt}){
+  const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/analytics?date_from=${df}&date_to=${dt}`),[id,df,dt]);
+  if(loading)return<Loader/>;
+  if(error)return<Err msg={error}/>;
+  const obd=data?.orders_by_day||[];
+  const top=data?.top_articles||[];
+  const regs=data?.regions||[];
+  const sts=data?.statuses||[];
+  const totalOrders=obd.reduce((s,r)=>s+(r.cnt||0),0);
+  const totalRev=obd.reduce((s,r)=>s+(r.revenue||0),0);
+  const avgOrder=totalOrders>0?totalRev/totalOrders:0;
+  const cancelled=sts.find(s=>(s.status||'').toLowerCase().includes('cancel'))?.cnt||0;
+  const cancelRate=totalOrders>0?Math.round(cancelled/totalOrders*100):0;
+  const topArtMax=top[0]?.cnt||1;
+  const topRegMax=regs[0]?.cnt||1;
+  return(
+    <div className="aup">
+      <div className="kgrid">
+        <KpiCard label="Заказов за период" value={fmt.n(totalOrders)} icon="📦" acc="linear-gradient(#3b82f6,#8b5cf6)" iconBg="#eff6ff" delay={0}/>
+        <KpiCard label="Выручка" value={fmt.r(totalRev)} icon="₽" acc="linear-gradient(#10b981,#059669)" iconBg="#ecfdf5" vc="k-ok" delay={.05}/>
+        <KpiCard label="Средний чек" value={fmt.r(avgOrder)} icon="📊" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" delay={.1}/>
+        <KpiCard label="% отмен" value={cancelRate+'%'} icon="↩" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc={cancelRate>15?'k-er':cancelRate>8?'k-wa':''} delay={.15} sub={`${cancelled} из ${totalOrders}`}/>
+      </div>
+      <div className="two-col" style={{marginBottom:14}}>
+        <div className="chart-card">
+          <div className="chart-title">📦 Заказы по дням</div>
+          <BarChart data={obd} vkey="cnt" lkey="date" color="#3b82f6"/>
+        </div>
+        <div className="chart-card">
+          <div className="chart-title">💰 Выручка по дням</div>
+          <LineChart data={obd} vkey="revenue" lkey="date" color="#059669"/>
+        </div>
+      </div>
+      <div className="two-col">
+        <div className="chart-card">
+          <div className="chart-title">🏆 Топ артикулов</div>
+          {top.length===0
+            ?<div className="chart-empty">Нет данных</div>
+            :top.map((a,i)=><HBarRow key={i} label={a.article||'—'} value={a.cnt} max={topArtMax} color="#3b82f6" sub={fmt.r(a.revenue)}/>)
+          }
+        </div>
+        <div className="chart-card">
+          <div className="chart-title">🌍 Регионы</div>
+          {regs.length===0
+            ?<div className="chart-empty">Нет данных</div>
+            :regs.map((r,i)=><HBarRow key={i} label={r.region||'—'} value={r.cnt} max={topRegMax} color="#8b5cf6" sub={fmt.pct(r.cnt,totalOrders)}/>)
+          }
         </div>
       </div>
     </div>
-    <div className="tabs">{tabs.map(t=><div key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}><span>{t.icon}</span>{t.label}</div>)}</div>
-    {(tab==='orders'||tab==='ads'||tab==='finances')&&<div className="filter-bar">
-      <span className="filter-lbl">Период:</span>
-      <input type="date" className="date-in" value={df} onChange={e=>setDf(e.target.value)}/>
-      <span className="text-muted">—</span>
-      <input type="date" className="date-in" value={dt} onChange={e=>setDt(e.target.value)}/>
-    </div>}
-    {tab==='orders'&&<OrdersTab id={cabinet.id} df={df} dt={dt}/>}
-    {tab==='stock'&&<StockTab id={cabinet.id}/>}
-    {tab==='ads'&&<AdsTab id={cabinet.id} df={df} dt={dt}/>}
-    {tab==='finances'&&<FinancesTab id={cabinet.id} df={df} dt={dt}/>}
-  </div>;
+  );
 }
 
-function StatusBadge({s}){
-  if(!s)return<span className="badge badge-grey">—</span>;
-  const l=s.toLowerCase();
-  if(l.includes('cancel'))return<span className="badge badge-red"><span className="dot"/>Отмена</span>;
-  if(l.includes('deliver'))return<span className="badge badge-green"><span className="dot"/>Доставлен</span>;
-  if(l.includes('new')||l.includes('created'))return<span className="badge badge-blue"><span className="dot"/>Новый</span>;
-  return<span className="badge badge-grey">{s}</span>;
-}
-function AlertBadge({a}){
-  if(a==='red')return<span className="badge badge-red"><span className="dot"/>Срочно &lt;7д</span>;
-  if(a==='yellow')return<span className="badge badge-yellow"><span className="dot"/>Скоро 7–14д</span>;
-  if(a==='green')return<span className="badge badge-green"><span className="dot"/>Норма</span>;
-  return<span className="badge badge-grey">Нет продаж</span>;
-}
-
+/* ── Orders Tab ── */
 function OrdersTab({id,df,dt}){
   const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/orders?date_from=${df}&date_to=${dt}`),[id,df,dt]);
-  if(loading)return<Loader/>;if(error)return<Alert>{error}</Alert>;
-  const total=(data||[]).reduce((s,r)=>s+(r.price||0),0);
-  return<div className="anim-up">
-    <div className="kpi-grid">
-      <KpiCard label="Заказов" value={fmt.num(data?.length)} icon="📦" color="blue" delay={0}/>
-      <KpiCard label="Сумма заказов" value={fmt.rub(total)} icon="₽" color="green" delay={.05}/>
+  const [sf,setSf]=useState('all');
+  if(loading)return<Loader/>;
+  if(error)return<Err msg={error}/>;
+  const all=data||[];
+  const totalRev=all.reduce((s,r)=>s+(r.price||0),0);
+  const cancelled=all.filter(r=>(r.status||'').toLowerCase().includes('cancel')).length;
+  const filtered=sf==='all'?all:all.filter(r=>{
+    const l=(r.status||'').toLowerCase();
+    return sf==='cancel'?l.includes('cancel'):l.includes('sell')||l.includes('deliver')||l.includes('complete');
+  });
+  return(
+    <div className="aup">
+      <div className="kgrid">
+        <KpiCard label="Заказов" value={fmt.n(all.length)} icon="📦" acc="linear-gradient(#3b82f6,#8b5cf6)" iconBg="#eff6ff" delay={0}/>
+        <KpiCard label="Выручка" value={fmt.r(totalRev)} icon="₽" acc="linear-gradient(#10b981,#059669)" iconBg="#ecfdf5" vc="k-ok" delay={.05}/>
+        <KpiCard label="Ср. чек" value={fmt.r(all.length?totalRev/all.length:0)} icon="📊" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" delay={.1}/>
+        <KpiCard label="Отменено" value={fmt.n(cancelled)} icon="↩" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc={cancelled?'k-er':''} delay={.15} sub={all.length?Math.round(cancelled/all.length*100)+'%':undefined}/>
+      </div>
+      <div className="fbar" style={{marginBottom:12}}>
+        {[['all','Все'],['ok','Продажи'],['cancel','Отмены']].map(([v,l])=>(
+          <button key={v} className={`btn btn-sm${sf===v?' btn-p':' btn-g'}`} onClick={()=>setSf(v)}>{l}</button>
+        ))}
+      </div>
+      <DataTable title="Заказы" count={`${filtered.length} из ${all.length}`} empty="Нет заказов"
+        head={['Дата','ID заказа','Артикул','Статус','Цена','Регион']}
+        rows={filtered.map(r=>[
+          <span className="muted">{fmt.d(r.date)}</span>,
+          <span className="muted" style={{fontSize:11}}>{r.order_id||'—'}</span>,
+          <span className="bold">{r.article||'—'}</span>,
+          <StatusBadge s={r.status}/>,
+          <span className="num semi">{fmt.r(r.price)}</span>,
+          <span className="muted">{r.region||'—'}</span>,
+        ])}/>
     </div>
-    <DataTable title="Список заказов" count={data?.length||0} empty="Заказов нет"
-      head={['Дата','ID заказа','Артикул','Статус','Цена','Регион']}
-      rows={(data||[]).map(r=>[r.date,<span className="text-muted">{r.order_id}</span>,r.article||'—',<StatusBadge s={r.status}/>,<span className="num">{fmt.rub(r.price)}</span>,r.region||'—'])}/>
-  </div>;
+  );
 }
 
+/* ── Stock Tab ── */
 function StockTab({id}){
   const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/stock`),[id]);
   const [f,setF]=useState('all');
-  if(loading)return<Loader/>;if(error)return<Alert>{error}</Alert>;
+  if(loading)return<Loader/>;
+  if(error)return<Err msg={error}/>;
+  const all=data||[];
   const cnt={red:0,yellow:0,green:0,grey:0};
-  (data||[]).forEach(r=>{if(cnt[r.alert]!=null)cnt[r.alert]++;});
-  const filtered=(data||[]).filter(r=>f==='all'||r.alert===f);
-  return<div className="anim-up">
-    <div className="kpi-grid">
-      <KpiCard label="Позиций" value={fmt.num(data?.length)} icon="📦" color="blue" delay={0}/>
-      <KpiCard label="Срочно пополнить" value={fmt.num(cnt.red)} icon="🔴" color="red" delay={.05}/>
-      <KpiCard label="Скоро закончится" value={fmt.num(cnt.yellow)} icon="🟡" color="orange" delay={.1}/>
-      <KpiCard label="В норме" value={fmt.num(cnt.green)} icon="🟢" color="green" delay={.15}/>
+  all.forEach(r=>{if(cnt[r.alert]!=null)cnt[r.alert]++;});
+  const filtered=f==='all'?all:all.filter(r=>r.alert===f);
+  function daysCell(days,alert){
+    if(days==null)return<span className="muted">—</span>;
+    const col=alert==='red'?'#dc2626':alert==='yellow'?'#d97706':'#059669';
+    const pct=Math.min(days/30*100,100);
+    return(
+      <div className="flex ic g2">
+        <span className="num" style={{minWidth:28,fontSize:12,color:col,fontWeight:700}}>{days}д</span>
+        <div className="sbar"><div className="sfill" style={{width:`${pct}%`,background:col}}/></div>
+      </div>
+    );
+  }
+  return(
+    <div className="aup">
+      <div className="kgrid">
+        <KpiCard label="Позиций" value={fmt.n(all.length)} icon="📦" acc="linear-gradient(#3b82f6,#8b5cf6)" iconBg="#eff6ff" delay={0}/>
+        <KpiCard label="Срочно <7д" value={fmt.n(cnt.red)} icon="🔴" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc={cnt.red?'k-er':''} delay={.05}/>
+        <KpiCard label="Скоро 7-14д" value={fmt.n(cnt.yellow)} icon="🟡" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" vc={cnt.yellow?'k-wa':''} delay={.1}/>
+        <KpiCard label="В норме" value={fmt.n(cnt.green)} icon="🟢" acc="linear-gradient(#10b981,#059669)" iconBg="#ecfdf5" vc="k-ok" delay={.15}/>
+      </div>
+      <div className="fbar" style={{marginBottom:12}}>
+        {[['all','Все'],['red','Срочно'],['yellow','Скоро'],['green','Норма'],['grey','Нет продаж']].map(([v,l])=>(
+          <button key={v} className={`btn btn-sm${f===v?' btn-p':' btn-g'}`} onClick={()=>setF(v)}>{l}</button>
+        ))}
+      </div>
+      <DataTable title="Остатки склада" count={`${filtered.length} позиций`} empty="Нет данных по остаткам"
+        head={['Артикул','Название','Склад','Остаток','Дней осталось','Статус']}
+        rows={filtered.map(r=>[
+          <span className="bold">{r.article||'—'}</span>,
+          <span className="truncate" style={{maxWidth:180,display:'block'}}>{r.name||'—'}</span>,
+          <span className="muted" style={{fontSize:11}}>{r.warehouse||'—'}</span>,
+          <span className="num bold">{fmt.n(r.quantity)}</span>,
+          daysCell(r.days_left,r.alert),
+          <AlertBadge a={r.alert}/>,
+        ])}/>
     </div>
-    <div style={{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap'}}>
-      {[['all','Все'],['red','Срочно'],['yellow','Скоро'],['green','Норма'],['grey','Нет продаж']].map(([v,l])=>(
-        <button key={v} className={`btn btn-sm${f===v?' btn-primary':' btn-ghost'}`} onClick={()=>setF(v)}>{l}</button>
-      ))}
-    </div>
-    <DataTable title="Остатки на складе" count={filtered.length} empty="Нет данных"
-      head={['Артикул','Название','Склад','Остаток','Дней осталось','Статус']}
-      rows={filtered.map(r=>[r.article||'—',<span className="truncate" style={{maxWidth:180,display:'block'}}>{r.name||'—'}</span>,<span className="text-muted">{r.warehouse||'—'}</span>,<span className="num font-bold">{fmt.num(r.quantity)}</span>,<span className="num">{r.days_left!=null?r.days_left+'д':'—'}</span>,<AlertBadge a={r.alert}/>])}/>
-  </div>;
+  );
 }
 
+/* ── Ads Tab ── */
 function AdsTab({id,df,dt}){
   const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/ads?date_from=${df}&date_to=${dt}`),[id,df,dt]);
-  if(loading)return<Loader/>;if(error)return<Alert>{error}</Alert>;
-  const spend=(data||[]).reduce((s,r)=>s+(r.spend||0),0);
-  const ord=(data||[]).reduce((s,r)=>s+(r.orders||0),0);
-  const views=(data||[]).reduce((s,r)=>s+(r.views||0),0);
-  return<div className="anim-up">
-    <div className="kpi-grid">
-      <KpiCard label="Расходы на рекламу" value={fmt.rub(spend)} icon="💸" color="red" delay={0}/>
-      <KpiCard label="Заказы с рекламы" value={fmt.num(ord)} icon="🛒" color="blue" delay={.05}/>
-      <KpiCard label="Показы" value={fmt.num(views)} icon="👁" color="orange" delay={.1}/>
-      <KpiCard label="CPO" value={fmt.rub(ord>0?spend/ord:0)} icon="📊" color="green" delay={.15}/>
+  if(loading)return<Loader/>;
+  if(error)return<Err msg={error}/>;
+  const all=data||[];
+  const spend=all.reduce((s,r)=>s+(r.spend||0),0);
+  const orders=all.reduce((s,r)=>s+(r.orders||0),0);
+  const views=all.reduce((s,r)=>s+(r.views||0),0);
+  const clicks=all.reduce((s,r)=>s+(r.clicks||0),0);
+  const cpo=orders>0?spend/orders:0;
+  const ctr=views>0?clicks/views*100:0;
+  const byCamp={};
+  all.forEach(r=>{
+    const k=r.campaign_id||'?';
+    if(!byCamp[k])byCamp[k]={id:k,name:r.campaign_name,spend:0,views:0,clicks:0,orders:0};
+    byCamp[k].spend+=r.spend||0;byCamp[k].views+=r.views||0;byCamp[k].clicks+=r.clicks||0;byCamp[k].orders+=r.orders||0;
+  });
+  const camps=Object.values(byCamp).sort((a,b)=>b.spend-a.spend);
+  const spendByDay={};
+  all.forEach(r=>{if(r.date){if(!spendByDay[r.date])spendByDay[r.date]={date:r.date,spend:0};spendByDay[r.date].spend+=r.spend||0;}});
+  const sbd=Object.values(spendByDay).sort((a,b)=>a.date.localeCompare(b.date));
+  return(
+    <div className="aup">
+      <div className="kgrid">
+        <KpiCard label="Расход" value={fmt.r(spend)} icon="💸" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc="k-er" delay={0}/>
+        <KpiCard label="Заказы с рекламы" value={fmt.n(orders)} icon="🛒" acc="linear-gradient(#3b82f6,#8b5cf6)" iconBg="#eff6ff" delay={.05}/>
+        <KpiCard label="CPO" value={fmt.r(cpo)} icon="🎯" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" delay={.1} sub={orders>0?undefined:'заказов нет'}/>
+        <KpiCard label="Показы / CTR" value={fmt.n(views)} icon="👁" acc="linear-gradient(#10b981,#059669)" iconBg="#ecfdf5" delay={.15} sub={`CTR ${ctr.toFixed(2)}%`}/>
+      </div>
+      {sbd.length>0&&<div className="chart-card" style={{marginBottom:14}}><div className="chart-title">💸 Расход по дням (₽)</div><BarChart data={sbd} vkey="spend" lkey="date" color="#ef4444"/></div>}
+      <DataTable title="Кампании" count={`${camps.length}`} empty="Нет данных по рекламе"
+        head={['Кампания','Расход','Показы','Клики','CTR','Заказы','CPO']}
+        rows={camps.map(c=>{
+          const ct=c.views>0?(c.clicks/c.views*100).toFixed(2)+'%':'—';
+          return[
+            <span className="truncate bold" style={{maxWidth:160,display:'block'}}>{c.name||`#${c.id}`}</span>,
+            <span className="num semi k-er">{fmt.r(c.spend)}</span>,
+            <span className="num">{fmt.n(c.views)}</span>,
+            <span className="num">{fmt.n(c.clicks)}</span>,
+            <span>{ct}</span>,
+            <span className="num">{fmt.n(c.orders)}</span>,
+            <span className="num">{c.orders>0?fmt.r(c.spend/c.orders):'—'}</span>,
+          ];
+        })}/>
     </div>
-    <DataTable title="Рекламные кампании" count={data?.length||0} empty="Нет данных по рекламе"
-      head={['Дата','Кампания','Расходы','Показы','Клики','Заказы']}
-      rows={(data||[]).map(r=>[r.date,<span className="truncate" style={{maxWidth:180,display:'block'}}>{r.campaign_name||r.campaign_id}</span>,<span className="num font-bold">{fmt.rub(r.spend)}</span>,<span className="num">{fmt.num(r.views)}</span>,<span className="num">{fmt.num(r.clicks)}</span>,<span className="num">{fmt.num(r.orders)}</span>])}/>
-  </div>;
+  );
 }
 
+/* ── Finances Tab ── */
 function FinancesTab({id,df,dt}){
   const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/finances?date_from=${df}&date_to=${dt}`),[id,df,dt]);
-  if(loading)return<Loader/>;if(error)return<Alert>{error}</Alert>;
-  const s=k=>(data||[]).reduce((a,r)=>a+(r[k]||0),0);
-  return<div className="anim-up">
-    <div className="kpi-grid">
-      <KpiCard label="Выручка" value={fmt.rub(s('revenue'))} icon="📈" color="blue" delay={0}/>
-      <KpiCard label="К выплате" value={fmt.rub(s('to_pay'))} icon="💰" color="green" delay={.05}/>
-      <KpiCard label="Комиссия WB" value={fmt.rub(s('commission'))} icon="📋" color="orange" delay={.1}/>
-      <KpiCard label="Логистика" value={fmt.rub(s('logistics'))} icon="🚚" color="orange" delay={.15}/>
-      <KpiCard label="Штрафы" value={fmt.rub(s('penalty'))} icon="⚠" color="red" delay={.2}/>
-    </div>
-    <DataTable title="Финансовый отчёт" count={data?.length||0} empty="Нет финансовых данных"
-      head={['Дата','Выручка','К выплате','Комиссия','Логистика','Штрафы']}
-      rows={(data||[]).map(r=>[r.date,<span className="num">{fmt.rub(r.revenue)}</span>,<span className="num font-semibold" style={{color:'var(--success)'}}>{fmt.rub(r.to_pay)}</span>,<span className="num">{fmt.rub(r.commission)}</span>,<span className="num">{fmt.rub(r.logistics)}</span>,<span className="num" style={{color:r.penalty>0?'var(--danger)':'inherit'}}>{fmt.rub(r.penalty)}</span>])}/>
-  </div>;
-}
-
-// ── Admin Cabinets ────────────────────────────────────────────────────────────
-function AdminCabinets(){
-  const [cabs,setCabs]=useState([]);const [loading,setLoading]=useState(true);
-  const [show,setShow]=useState(false);const [name,setName]=useState('');const [token,setToken]=useState('');
-  const [err,setErr]=useState('');const [saving,setSaving]=useState(false);
-  useEffect(()=>{api.get('/api/admin/cabinets').then(setCabs).finally(()=>setLoading(false));});
-  async function add(e){e.preventDefault();setErr('');setSaving(true);try{const c=await api.post('/api/admin/cabinets',{name,api_token:token});setCabs(p=>[...p,c]);setName('');setToken('');setShow(false);}catch(e){setErr(e.message);}finally{setSaving(false);}}
-  async function del(id){if(!confirm('Удалить кабинет?'))return;await api.del(`/api/admin/cabinets/${id}`);setCabs(p=>p.filter(c=>c.id!==id));}
   if(loading)return<Loader/>;
-  return<div>
-    <div className="page-header"><div className="page-row">
-      <div><div className="page-title">Кабинеты WB</div><div className="page-sub">Управление кабинетами и API токенами</div></div>
-      <button className="btn btn-primary" onClick={()=>setShow(true)}>+ Добавить кабинет</button>
-    </div></div>
-    {show&&<div className="panel anim-up" style={{maxWidth:480,marginBottom:20}}>
-      <div className="panel-title">🗄 Новый кабинет</div>
-      <div className="panel-hint">Токен проверяется при добавлении. Нужен доступ к нужным разделам WB API.</div>
-      {err&&<Alert>{err}</Alert>}
-      <form onSubmit={add}>
-        <div className="form-group"><label className="form-label">Название кабинета</label><input className="form-input" value={name} onChange={e=>setName(e.target.value)} placeholder="Мой магазин" required/></div>
-        <div className="form-group"><label className="form-label">API токен WB</label><input className="form-input" value={token} onChange={e=>setToken(e.target.value)} placeholder="eyJhbGci..." required/></div>
-        <div className="flex gap-2"><button className="btn btn-primary" type="submit" disabled={saving}>{saving?'Добавление...':'Добавить'}</button><button className="btn btn-ghost" type="button" onClick={()=>{setShow(false);setErr('');}}>Отмена</button></div>
-      </form>
-    </div>}
-    {cabs.length===0?<div className="empty"><div className="empty-icon">🗄</div><div className="empty-title">Кабинеты не добавлены</div></div>
-      :<DataTable title="Кабинеты" count={cabs.length} empty="" head={['#','Название','Добавлен','']}
-          rows={cabs.map(c=>[<span className="text-muted">{c.id}</span>,<span className="font-bold">{c.name}</span>,<span className="text-muted">{fmt.date(c.created_at)}</span>,<button className="btn btn-danger btn-sm" onClick={()=>del(c.id)}>Удалить</button>])}/>
-    }
-  </div>;
+  if(error)return<Err msg={error}/>;
+  const all=data||[];
+  const s=k=>all.reduce((a,r)=>a+(r[k]||0),0);
+  const rev=s('revenue'),pay=s('to_pay'),com=s('commission'),log=s('logistics'),pen=s('penalty');
+  const margin=rev>0?Math.round(pay/rev*100):0;
+  const revByDay=[...all].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  return(
+    <div className="aup">
+      <div className="kgrid">
+        <KpiCard label="Выручка" value={fmt.r(rev)} icon="📈" acc="linear-gradient(#3b82f6,#8b5cf6)" iconBg="#eff6ff" delay={0}/>
+        <KpiCard label="К выплате" value={fmt.r(pay)} icon="💰" acc="linear-gradient(#10b981,#059669)" iconBg="#ecfdf5" vc="k-ok" delay={.05} sub={`Маржа ${margin}%`}/>
+        <KpiCard label="Комиссия WB" value={fmt.r(com)} icon="📋" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" delay={.1}/>
+        <KpiCard label="Логистика" value={fmt.r(log)} icon="🚚" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" delay={.15}/>
+        <KpiCard label="Штрафы" value={fmt.r(pen)} icon="⚠" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc={pen>0?'k-er':''} delay={.2}/>
+      </div>
+      {revByDay.length>0&&(
+        <div className="two-col" style={{marginBottom:14}}>
+          <div className="chart-card"><div className="chart-title">📈 Выручка по дням</div><BarChart data={revByDay} vkey="revenue" lkey="date" color="#3b82f6"/></div>
+          <div className="chart-card"><div className="chart-title">💰 К выплате по дням</div><BarChart data={revByDay} vkey="to_pay" lkey="date" color="#059669"/></div>
+        </div>
+      )}
+      {rev>0&&(
+        <div className="chart-card" style={{marginBottom:14}}>
+          <div className="chart-title">📊 Структура выручки</div>
+          {[{l:'К выплате',v:pay,c:'#059669'},{l:'Комиссия WB',v:com,c:'#f59e0b'},{l:'Логистика',v:log,c:'#3b82f6'},{l:'Штрафы',v:pen,c:'#ef4444'}].map((it,i)=>(
+            <HBarRow key={i} label={it.l} value={it.v} max={rev} color={it.c} sub={fmt.pct(it.v,rev)}/>
+          ))}
+        </div>
+      )}
+      <DataTable title="Финансовый отчёт" count={`${all.length} дней`} empty="Нет финансовых данных"
+        head={['Дата','Выручка','К выплате','Комиссия','Логистика','Штрафы']}
+        rows={all.map(r=>[
+          <span className="muted">{fmt.d(r.date)}</span>,
+          <span className="num">{fmt.r(r.revenue)}</span>,
+          <span className="num semi k-ok">{fmt.r(r.to_pay)}</span>,
+          <span className="num">{fmt.r(r.commission)}</span>,
+          <span className="num">{fmt.r(r.logistics)}</span>,
+          <span className="num" style={{color:r.penalty>0?'var(--er)':'inherit'}}>{fmt.r(r.penalty)}</span>,
+        ])}/>
+    </div>
+  );
 }
 
-// ── Admin Users ───────────────────────────────────────────────────────────────
+/* ── Cabinet Detail ── */
+function CabinetDetail({cabinet,onBack}){
+  const perms=cabinet.permissions||{};
+  const today=new Date().toISOString().slice(0,10);
+  const monthAgo=new Date(Date.now()-30*864e5).toISOString().slice(0,10);
+  const [df,setDf]=useState(monthAgo);
+  const [dt,setDt]=useState(today);
+  const tabs=[
+    perms.orders&&{id:'analytics',icon:'📊',label:'Аналитика'},
+    perms.orders&&{id:'orders',icon:'📦',label:'Заказы'},
+    perms.stock&&{id:'stock',icon:'🏭',label:'Остатки'},
+    perms.ads&&{id:'ads',icon:'📣',label:'Реклама'},
+    perms.finances&&{id:'finances',icon:'💰',label:'Финансы'},
+  ].filter(Boolean);
+  const [tab,setTab]=useState(tabs[0]?.id||'');
+  return(
+    <div>
+      <div className="ph">
+        <div className="ph-row">
+          <div className="flex ic g2">
+            <button className="btn btn-g btn-sm" onClick={onBack}>← Назад</button>
+            <div><div className="pt">{cabinet.name}</div><div className="ps">Детальная аналитика кабинета</div></div>
+          </div>
+        </div>
+      </div>
+      <div className="flex ic g2" style={{marginBottom:16,flexWrap:'wrap'}}>
+        <div className="tabs">{tabs.map(t=><div key={t.id} className={`tab${tab===t.id?' on':''}`} onClick={()=>setTab(t.id)}><span>{t.icon}</span>{t.label}</div>)}</div>
+        {tab!=='stock'&&(
+          <div className="fbar">
+            <span className="fbar-l">Период:</span>
+            <input type="date" className="din" value={df} onChange={e=>setDf(e.target.value)}/>
+            <span className="muted">—</span>
+            <input type="date" className="din" value={dt} onChange={e=>setDt(e.target.value)}/>
+          </div>
+        )}
+      </div>
+      {tab==='analytics'&&<AnalyticsTab id={cabinet.id} df={df} dt={dt}/>}
+      {tab==='orders'&&<OrdersTab id={cabinet.id} df={df} dt={dt}/>}
+      {tab==='stock'&&<StockTab id={cabinet.id}/>}
+      {tab==='ads'&&<AdsTab id={cabinet.id} df={df} dt={dt}/>}
+      {tab==='finances'&&<FinancesTab id={cabinet.id} df={df} dt={dt}/>}
+    </div>
+  );
+}
+
+/* ── Admin Cabinets ── */
+function AdminCabinets(){
+  const [cabs,setCabs]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showAdd,setShowAdd]=useState(false);
+  const [name,setName]=useState('');
+  const [token,setToken]=useState('');
+  const [err,setErr]=useState('');
+  const [saving,setSaving]=useState(false);
+
+  useEffect(()=>{
+    api.get('/api/admin/cabinets').then(setCabs).finally(()=>setLoading(false));
+  },[]);
+
+  async function add(e){
+    e.preventDefault();setErr('');setSaving(true);
+    try{const c=await api.post('/api/admin/cabinets',{name,api_token:token});setCabs(p=>[...p,c]);setName('');setToken('');setShowAdd(false);}
+    catch(e){setErr(e.message);}finally{setSaving(false);}
+  }
+  async function del(id){
+    if(!confirm('Удалить кабинет и все данные?'))return;
+    await api.del(`/api/admin/cabinets/${id}`);setCabs(p=>p.filter(c=>c.id!==id));
+  }
+  if(loading)return<Loader/>;
+  return(
+    <div>
+      <div className="ph"><div className="ph-row">
+        <div><div className="pt">Кабинеты WB</div><div className="ps">Управление кабинетами и API токенами</div></div>
+        <button className="btn btn-p" onClick={()=>setShowAdd(true)}>+ Добавить кабинет</button>
+      </div></div>
+      {showAdd&&(
+        <div className="panel aup" style={{maxWidth:480,marginBottom:18}}>
+          <div className="panel-t">🗄 Новый кабинет</div>
+          <div className="panel-hint">Токен проверяется при добавлении. Нужны права на чтение заказов, остатков, рекламы и финансов в личном кабинете WB.</div>
+          {err&&<Alert type="e">{err}</Alert>}
+          <form onSubmit={add}>
+            <div className="fg"><label className="fl">Название кабинета</label><input className="fi" value={name} onChange={e=>setName(e.target.value)} placeholder="Мой магазин" required/></div>
+            <div className="fg"><label className="fl">API токен WB</label><input className="fi" value={token} onChange={e=>setToken(e.target.value)} placeholder="eyJhbGci..." required/></div>
+            <div className="flex g2">
+              <button className="btn btn-p" type="submit" disabled={saving}>{saving?'Проверка токена...':'Добавить'}</button>
+              <button className="btn btn-g" type="button" onClick={()=>{setShowAdd(false);setErr('');}}>Отмена</button>
+            </div>
+          </form>
+        </div>
+      )}
+      {cabs.length===0
+        ?<div className="empty"><div className="empty-ic">🗄</div><div className="empty-t">Кабинеты не добавлены</div></div>
+        :<DataTable title="Кабинеты" count={cabs.length} empty="" head={['#','Название','Добавлен','']}
+            rows={cabs.map(c=>[
+              <span className="muted">{c.id}</span>,
+              <span className="bold">{c.name}</span>,
+              <span className="muted">{fmt.d(c.created_at)}</span>,
+              <button className="btn btn-d btn-sm" onClick={()=>del(c.id)}>Удалить</button>,
+            ])}/>
+      }
+    </div>
+  );
+}
+
+/* ── Admin Users ── */
 function AdminUsers(){
-  const [users,setUsers]=useState([]);const [cabs,setCabs]=useState([]);const [loading,setLoading]=useState(true);
-  const [showCreate,setShowCreate]=useState(false);const [permUser,setPermUser]=useState(null);
-  const [login,setLogin]=useState('');const [pw,setPw]=useState('');const [isAdmin,setIsAdmin]=useState(false);
-  const [err,setErr]=useState('');const [saving,setSaving]=useState(false);
-  useEffect(()=>{Promise.all([api.get('/api/admin/users'),api.get('/api/admin/cabinets')]).then(([u,c])=>{setUsers(u);setCabs(c);}).finally(()=>setLoading(false));});
-  async function create(e){e.preventDefault();setErr('');setSaving(true);try{const u=await api.post('/api/admin/users',{login,password:pw,is_admin:isAdmin});setUsers(p=>[...p,u]);setLogin('');setPw('');setIsAdmin(false);setShowCreate(false);}catch(e){setErr(e.message);}finally{setSaving(false);}}
+  const [users,setUsers]=useState([]);
+  const [cabs,setCabs]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showCreate,setShowCreate]=useState(false);
+  const [permUser,setPermUser]=useState(null);
+  const [login,setLogin]=useState('');
+  const [pw,setPw]=useState('');
+  const [isAdmin,setIsAdmin]=useState(false);
+  const [err,setErr]=useState('');
+  const [saving,setSaving]=useState(false);
+
+  useEffect(()=>{
+    Promise.all([api.get('/api/admin/users'),api.get('/api/admin/cabinets')])
+      .then(([u,c])=>{setUsers(u);setCabs(c);})
+      .finally(()=>setLoading(false));
+  },[]);
+
+  async function create(e){
+    e.preventDefault();setErr('');setSaving(true);
+    try{const u=await api.post('/api/admin/users',{login,password:pw,is_admin:isAdmin});setUsers(p=>[...p,u]);setLogin('');setPw('');setIsAdmin(false);setShowCreate(false);}
+    catch(e){setErr(e.message);}finally{setSaving(false);}
+  }
   async function toggle(id){const u=await api.patch(`/api/admin/users/${id}/active`);setUsers(p=>p.map(x=>x.id===id?{...x,...u}:x));}
   async function del(id){if(!confirm('Удалить?'))return;await api.del(`/api/admin/users/${id}`);setUsers(p=>p.filter(u=>u.id!==id));}
+
   if(loading)return<Loader/>;
-  return<div>
-    <div className="page-header"><div className="page-row">
-      <div><div className="page-title">Пользователи</div><div className="page-sub">Управление доступами к кабинетам</div></div>
-      <button className="btn btn-primary" onClick={()=>setShowCreate(true)}>+ Добавить пользователя</button>
-    </div></div>
-    {showCreate&&<Modal title="Новый пользователь" onClose={()=>{setShowCreate(false);setErr('');}}>
-      {err&&<Alert>{err}</Alert>}
-      <form onSubmit={create}>
-        <div className="form-group"><label className="form-label">Логин</label><input className="form-input" value={login} onChange={e=>setLogin(e.target.value)} placeholder="user123" required/></div>
-        <div className="form-group"><label className="form-label">Пароль (мин. 8 символов)</label><input className="form-input" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" required/></div>
-        <label style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--text2)',cursor:'pointer'}}>
-          <input type="checkbox" style={{accentColor:'var(--accent)'}} checked={isAdmin} onChange={e=>setIsAdmin(e.target.checked)}/>Администратор
-        </label>
-        <div className="modal-footer">
-          <button className="btn btn-ghost" type="button" onClick={()=>setShowCreate(false)}>Отмена</button>
-          <button className="btn btn-primary" type="submit" disabled={saving}>{saving?'Создание...':'Создать'}</button>
-        </div>
-      </form>
-    </Modal>}
-    {permUser&&<PermModal user={permUser} cabinets={cabs} onClose={()=>setPermUser(null)}/>}
-    <DataTable title="Пользователи" count={users.length} empty="Нет пользователей"
-      head={['#','Логин','Роль','Статус','Создан','Действия']}
-      rows={users.map(u=>[
-        <span className="text-muted">{u.id}</span>,
-        <span className="font-bold">{u.login}</span>,
-        u.is_admin?<span className="badge badge-blue">Админ</span>:<span className="badge badge-grey">Просмотр</span>,
-        u.is_active?<span className="badge badge-green"><span className="dot"/>Активен</span>:<span className="badge badge-red"><span className="dot"/>Откл.</span>,
-        <span className="text-muted">{fmt.date(u.created_at)}</span>,
-        <div className="flex gap-2">
-          <button className="btn btn-ghost btn-sm" onClick={()=>setPermUser(u)}>Доступы</button>
-          <button className="btn btn-ghost btn-sm" onClick={()=>toggle(u.id)}>{u.is_active?'Откл.':'Вкл.'}</button>
-          <button className="btn btn-danger btn-sm" onClick={()=>del(u.id)}>✕</button>
-        </div>
-      ])}/>
-  </div>;
+  return(
+    <div>
+      <div className="ph"><div className="ph-row">
+        <div><div className="pt">Пользователи</div><div className="ps">Управление доступами к кабинетам</div></div>
+        <button className="btn btn-p" onClick={()=>setShowCreate(true)}>+ Добавить пользователя</button>
+      </div></div>
+      {showCreate&&(
+        <Modal title="Новый пользователь" onClose={()=>{setShowCreate(false);setErr('');}}>
+          {err&&<Alert type="e">{err}</Alert>}
+          <form onSubmit={create}>
+            <div className="fg"><label className="fl">Логин</label><input className="fi" value={login} onChange={e=>setLogin(e.target.value)} placeholder="user123" required/></div>
+            <div className="fg"><label className="fl">Пароль (мин. 8 символов)</label><input className="fi" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" required/></div>
+            <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12.5,color:'var(--txt2)',cursor:'pointer'}}>
+              <input type="checkbox" style={{accentColor:'var(--acc)'}} checked={isAdmin} onChange={e=>setIsAdmin(e.target.checked)}/> Администратор
+            </label>
+            <div className="mft">
+              <button className="btn btn-g" type="button" onClick={()=>setShowCreate(false)}>Отмена</button>
+              <button className="btn btn-p" type="submit" disabled={saving}>{saving?'Создание...':'Создать'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {permUser&&<PermModal user={permUser} cabinets={cabs} onClose={()=>setPermUser(null)}/>}
+      <DataTable title="Пользователи" count={users.length} empty="Нет пользователей"
+        head={['#','Логин','Роль','Статус','Создан','Действия']}
+        rows={users.map(u=>[
+          <span className="muted">{u.id}</span>,
+          <span className="bold">{u.login}</span>,
+          u.is_admin?<span className="bdg bdg-b">Админ</span>:<span className="bdg bdg-x">Просмотр</span>,
+          u.is_active?<span className="bdg bdg-g"><span className="dot"/>Активен</span>:<span className="bdg bdg-r"><span className="dot"/>Откл.</span>,
+          <span className="muted">{fmt.d(u.created_at)}</span>,
+          <div className="flex g2">
+            <button className="btn btn-g btn-sm" onClick={()=>setPermUser(u)}>Доступы</button>
+            <button className="btn btn-g btn-sm" onClick={()=>toggle(u.id)}>{u.is_active?'Откл.':'Вкл.'}</button>
+            <button className="btn btn-d btn-sm" onClick={()=>del(u.id)}>✕</button>
+          </div>,
+        ])}/>
+    </div>
+  );
 }
 
 function PermModal({user,cabinets,onClose}){
-  const [perms,setPerms]=useState({});const [loading,setLoading]=useState(true);const [saving,setSaving]=useState(false);const [err,setErr]=useState('');
-  useEffect(()=>{api.get(`/api/admin/users/${user.id}/permissions`).then(data=>{const m={};data.forEach(p=>{m[p.cabinet_id]={orders:!!p.can_view_orders,stock:!!p.can_view_stock,ads:!!p.can_view_ads,finances:!!p.can_view_finances};});setPerms(m);}).finally(()=>setLoading(false));});
-  function tog(cid,f){setPerms(p=>({...p,[cid]:{...(p[cid]||{}),[f]:!(p[cid]?.[f])}}));}
-  async function save(){setSaving(true);setErr('');try{await api.put(`/api/admin/users/${user.id}/permissions`,{permissions:cabinets.map(c=>({cabinet_id:c.id,can_view_orders:!!(perms[c.id]?.orders),can_view_stock:!!(perms[c.id]?.stock),can_view_ads:!!(perms[c.id]?.ads),can_view_finances:!!(perms[c.id]?.finances)}))});onClose();}catch(e){setErr(e.message);}finally{setSaving(false);}}
-  return<Modal title={`Доступы: ${user.login}`} onClose={onClose} footer={<><button className="btn btn-ghost" onClick={onClose}>Отмена</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Сохранение...':'Сохранить'}</button></>}>
-    {err&&<Alert>{err}</Alert>}
-    {loading?<Loader/>:cabinets.length===0?<div className="empty"><div className="empty-title">Нет кабинетов</div></div>:
-      <div style={{display:'flex',flexDirection:'column',gap:10}}>
-        {cabinets.map(c=><div key={c.id} className="perm-cab">
-          <div className="perm-cab-name">{c.name}</div>
-          <div className="perm-checks">
-            {[['orders','📦 Заказы'],['stock','🏭 Остатки'],['ads','📣 Реклама'],['finances','💰 Финансы']].map(([f,l])=>(
-              <label key={f} className="perm-check"><input type="checkbox" checked={!!(perms[c.id]?.[f])} onChange={()=>tog(c.id,f)}/>{l}</label>
-            ))}
+  const [perms,setPerms]=useState({});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState('');
+  useEffect(()=>{
+    api.get(`/api/admin/users/${user.id}/permissions`)
+      .then(data=>{const m={};data.forEach(p=>{m[p.cabinet_id]={orders:!!p.can_view_orders,stock:!!p.can_view_stock,ads:!!p.can_view_ads,finances:!!p.can_view_finances};});setPerms(m);})
+      .finally(()=>setLoading(false));
+  },[]);
+  function tog(cid,f){setPerms(p=>({...p,[cid]:{...(p[cid]||{}),[f]:!p[cid]?.[f]}}));}
+  async function save(){
+    setSaving(true);setErr('');
+    try{
+      await api.put(`/api/admin/users/${user.id}/permissions`,{
+        permissions:cabinets.map(c=>({cabinet_id:c.id,can_view_orders:!!(perms[c.id]?.orders),can_view_stock:!!(perms[c.id]?.stock),can_view_ads:!!(perms[c.id]?.ads),can_view_finances:!!(perms[c.id]?.finances)}))
+      });
+      onClose();
+    }catch(e){setErr(e.message);}finally{setSaving(false);}
+  }
+  return(
+    <Modal title={`Доступы: ${user.login}`} onClose={onClose}
+      footer={<><button className="btn btn-g" onClick={onClose}>Отмена</button><button className="btn btn-p" onClick={save} disabled={saving}>{saving?'Сохранение...':'Сохранить'}</button></>}>
+      {err&&<Alert type="e">{err}</Alert>}
+      {loading?<Loader/>:cabinets.length===0
+        ?<div className="empty"><div className="empty-t">Нет кабинетов</div></div>
+        :cabinets.map(c=>(
+          <div key={c.id} className="perm-cab">
+            <div className="perm-cn">{c.name}</div>
+            <div className="perm-cks">
+              {[['orders','📦 Заказы'],['stock','🏭 Остатки'],['ads','📣 Реклама'],['finances','💰 Финансы']].map(([f,l])=>(
+                <label key={f} className="perm-ck"><input type="checkbox" checked={!!(perms[c.id]?.[f])} onChange={()=>tog(c.id,f)}/>{l}</label>
+              ))}
+            </div>
           </div>
-        </div>)}
-      </div>
-    }
-  </Modal>;
+        ))
+      }
+    </Modal>
+  );
 }
 
-// ── App ───────────────────────────────────────────────────────────────────────
+/* ── App ── */
 function App(){
   const [auth,setAuth]=useState(()=>{
-    const t=localStorage.getItem('token');if(!t)return null;
-    try{const p=JSON.parse(atob(t.split('.')[1]));if(p.exp*1000<Date.now()){localStorage.removeItem('token');return null;}return{token:t,is_admin:p.admin,login:p.sub};}
-    catch{localStorage.removeItem('token');return null;}
+    const t=localStorage.getItem('token');
+    if(!t)return null;
+    try{
+      const p=JSON.parse(atob(t.split('.')[1]));
+      if(p.exp*1000<Date.now()){localStorage.removeItem('token');return null;}
+      return{token:t,is_admin:p.admin,login:p.sub};
+    }catch{localStorage.removeItem('token');return null;}
   });
   const [page,setPage]=useState('dashboard');
   const [cab,setCab]=useState(null);
   function logout(){localStorage.removeItem('token');setAuth(null);}
   function nav(p){setPage(p);setCab(null);}
   if(!auth)return<LoginPage onLogin={d=>setAuth(d)}/>;
-  const crumbs=page==='dashboard'?['WB Dashboard','Обзор']:page==='cabinet'&&cab?['WB Dashboard','Обзор',cab.name]:page==='admin-cabinets'?['WB Dashboard','Кабинеты WB']:page==='admin-users'?['WB Dashboard','Пользователи']:['WB Dashboard'];
-  return<div className="app">
-    <Sidebar page={page} setPage={nav} isAdmin={auth.is_admin} user={auth} onLogout={logout} cabinetName={cab?.name}/>
-    <div className="main">
-      <Topbar crumbs={crumbs} isAdmin={auth.is_admin}/>
-      <div className="page">
-        {page==='cabinet'&&cab?<CabinetDetail cabinet={cab} onBack={()=>{setCab(null);setPage('dashboard');}}/>
-        :page==='admin-cabinets'?<AdminCabinets/>
-        :page==='admin-users'?<AdminUsers/>
-        :<Dashboard onOpenCabinet={c=>{setCab(c);setPage('cabinet');}}/>}
+  const crumbs=
+    page==='cabinet'&&cab?['WB Dashboard','Обзор',cab.name]:
+    page==='cabs'?['WB Dashboard','Кабинеты WB']:
+    page==='users'?['WB Dashboard','Пользователи']:
+    ['WB Dashboard','Обзор'];
+  return(
+    <div className="app">
+      <Sidebar page={page} nav={nav} isAdmin={auth.is_admin} user={auth} onLogout={logout} cabName={page==='cabinet'?cab?.name:null}/>
+      <div className="main">
+        <Topbar crumbs={crumbs} isAdmin={auth.is_admin}/>
+        <div className="page">
+          {page==='cabinet'&&cab
+            ?<CabinetDetail cabinet={cab} onBack={()=>{setCab(null);setPage('dashboard');}}/>
+            :page==='cabs'?<AdminCabinets/>
+            :page==='users'?<AdminUsers/>
+            :<Dashboard onOpen={c=>{setCab(c);setPage('cabinet');}}/>
+          }
+        </div>
       </div>
     </div>
-  </div>;
+  );
 }
+
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>

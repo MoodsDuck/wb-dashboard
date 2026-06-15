@@ -49,7 +49,7 @@ async def security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://unpkg.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data:; "
@@ -289,6 +289,63 @@ async def get_finances(cabinet_id: int, date_from: str = "", date_to: str = "",
         query += " ORDER BY date DESC"
         cur = await db.execute(query, params)
         return [dict(r) for r in await cur.fetchall()]
+    finally:
+        await db.close()
+
+
+# ── Analytics ────────────────────────────────────────────────────────────────
+
+@app.get("/api/cabinets/{cabinet_id}/analytics")
+async def get_analytics(cabinet_id: int, date_from: str = "", date_to: str = "",
+                        user: dict = Depends(auth.get_current_user)):
+    await _assert_cabinet_permission(user, cabinet_id, "orders")
+    db = await get_db()
+    try:
+        base_params: list = [cabinet_id]
+        date_sql = ""
+        if date_from:
+            date_sql += " AND date>=?"
+            base_params.append(date_from)
+        if date_to:
+            date_sql += " AND date<=?"
+            base_params.append(date_to)
+
+        cur = await db.execute(
+            f"SELECT date, COUNT(*) as cnt, SUM(price) as revenue FROM orders_cache "
+            f"WHERE cabinet_id=? {date_sql} GROUP BY date ORDER BY date",
+            base_params
+        )
+        orders_by_day = [dict(r) for r in await cur.fetchall()]
+
+        cur = await db.execute(
+            f"SELECT article, COUNT(*) as cnt, SUM(price) as revenue FROM orders_cache "
+            f"WHERE cabinet_id=? AND article IS NOT NULL {date_sql} "
+            f"GROUP BY article ORDER BY cnt DESC LIMIT 10",
+            base_params
+        )
+        top_articles = [dict(r) for r in await cur.fetchall()]
+
+        cur = await db.execute(
+            f"SELECT region, COUNT(*) as cnt FROM orders_cache "
+            f"WHERE cabinet_id=? AND region IS NOT NULL {date_sql} "
+            f"GROUP BY region ORDER BY cnt DESC LIMIT 10",
+            base_params
+        )
+        regions = [dict(r) for r in await cur.fetchall()]
+
+        cur = await db.execute(
+            f"SELECT status, COUNT(*) as cnt FROM orders_cache "
+            f"WHERE cabinet_id=? {date_sql} GROUP BY status ORDER BY cnt DESC",
+            base_params
+        )
+        statuses = [dict(r) for r in await cur.fetchall()]
+
+        return {
+            "orders_by_day": orders_by_day,
+            "top_articles": top_articles,
+            "regions": regions,
+            "statuses": statuses,
+        }
     finally:
         await db.close()
 

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wb-static",
+      "runtimeExecutable": "C:\\Users\\MoodsDuck\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe",
+      "runtimeArgs": ["-m", "http.server", "7788", "--directory", "E:\\Project\\wb-dashboard\\static"],
+      "port": 7788
+    }
+  ]
+}
