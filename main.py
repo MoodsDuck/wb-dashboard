@@ -644,21 +644,26 @@ async def admin_debug(cabinet_id: int, section: str = "ads", admin: dict = Depen
 
     try:
         if section == "stocks_fbs":
-            # Test POST /api/v2/stocks-report/offices for FBS+FBO stocks
-            body = {"nmIDs": [], "subjectIDs": [], "brandNames": [], "tagIDs": [], "includeOffice": True}
-            results = {}
-            for base in ["https://seller-analytics-api.wildberries.ru",
-                         "https://analytics-api.wildberries.ru"]:
+            base = "https://seller-analytics-api.wildberries.ru"
+            # Try different stockType values (0=all, 1=fbo, 2=fbs, 4=?)
+            for stock_type in [0, 1, 2, 4]:
+                body = {
+                    "currentPeriod": {"start": week_ago, "end": today},
+                    "stockType": stock_type,
+                    "skipDeletedNm": False,
+                    "nmIDs": [], "subjectIDs": [], "brandNames": [], "tagIDs": [],
+                    "includeOffice": True,
+                }
                 try:
                     data = await wb_client._post(token, base, "/api/v2/stocks-report/offices", body)
-                    results[base] = {"ok": True, "type": type(data).__name__,
-                                     "sample": str(data)[:500] if data else None}
-                    break
+                    items = data if isinstance(data, list) else (data.get("data", {}) if isinstance(data, dict) else {})
+                    return {"stockType": stock_type, "ok": True,
+                            "data_type": type(data).__name__, "sample": str(data)[:1000]}
                 except wb_client.WBApiError as e:
-                    results[base] = {"error": str(e)}
-                except Exception as e:
-                    results[base] = {"exception": str(e)}
-            return results
+                    if e.status != 400:
+                        return {"stockType": stock_type, "error": str(e)}
+                    continue
+            return {"error": "all stockType values returned 400"}
         elif section == "ads_count":
             data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
             return {"raw": data}
