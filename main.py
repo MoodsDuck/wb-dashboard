@@ -646,6 +646,20 @@ async def admin_debug(cabinet_id: int, section: str = "ads", admin: dict = Depen
         if section == "ads_count":
             data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
             return {"raw": data}
+        elif section == "ads_names":
+            # Test what /api/advert/v2/adverts returns with real campaign IDs
+            count = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
+            ids = []
+            for g in (count.get("adverts") or [] if isinstance(count, dict) else []):
+                for a in (g.get("advert_list") or []):
+                    if a.get("advertId"):
+                        ids.append(a["advertId"])
+            if not ids:
+                return {"error": "no ids"}
+            data = await wb_client._get(token, wb_client._BASE_ADVERT, "/api/advert/v2/adverts", {
+                "ids": ",".join(str(x) for x in ids[:10]),
+            })
+            return {"ids_tested": ids[:10], "raw": data, "raw_type": type(data).__name__}
         elif section == "ads_stats":
             # Use real campaign IDs from count endpoint
             count = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
