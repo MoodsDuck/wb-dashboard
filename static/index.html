@@ -11,29 +11,29 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     :root{
-      --bg:#0e1117;
-      --surface:#161b27;
-      --surface2:#1c2235;
-      --surface3:#222a3f;
-      --border:rgba(148,163,210,0.08);
-      --border2:rgba(148,163,210,0.14);
-      --accent:#5b6af0;
-      --accent2:#7b8cf8;
-      --accent3:#a8b4fc;
-      --glow:rgba(91,106,240,0.28);
-      --glow2:rgba(91,106,240,0.09);
-      --purple:#9b59f7;
-      --pink:#e84d9e;
+      --bg:#111827;
+      --surface:#1f2937;
+      --surface2:#273449;
+      --surface3:#2e3d56;
+      --border:rgba(99,179,237,0.13);
+      --border2:rgba(99,179,237,0.25);
+      --accent:#3b82f6;
+      --accent2:#60a5fa;
+      --accent3:#93c5fd;
+      --glow:rgba(59,130,246,0.38);
+      --glow2:rgba(59,130,246,0.13);
+      --purple:#8b5cf6;
+      --pink:#ec4899;
       --cyan:#22d3ee;
-      --text:#e8eaf6;
-      --text2:#8892b0;
-      --text3:#4a5270;
-      --success:#0fd9a0;
-      --success-bg:rgba(15,217,160,0.10);
-      --warning:#f5a623;
-      --warning-bg:rgba(245,166,35,0.10);
-      --danger:#f14668;
-      --danger-bg:rgba(241,70,104,0.10);
+      --text:#f0f6ff;
+      --text2:#94a3b8;
+      --text3:#475569;
+      --success:#10b981;
+      --success-bg:rgba(16,185,129,0.13);
+      --warning:#f59e0b;
+      --warning-bg:rgba(245,158,11,0.13);
+      --danger:#ef4444;
+      --danger-bg:rgba(239,68,68,0.13);
       --r:10px;--r-sm:7px;--r-lg:14px;
       --sw:240px;
     }
@@ -41,9 +41,9 @@
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
     body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
       background:
-        radial-gradient(ellipse 80% 50% at 70% -10%, rgba(91,106,240,.12) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at -5% 60%, rgba(155,89,247,.09) 0%, transparent 55%),
-        radial-gradient(ellipse 40% 30% at 100% 90%, rgba(34,211,238,.07) 0%, transparent 50%);
+        radial-gradient(ellipse 70% 55% at 75% -5%, rgba(59,130,246,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 45% at -10% 65%, rgba(139,92,246,.14) 0%, transparent 55%),
+        radial-gradient(ellipse 45% 35% at 95% 95%, rgba(34,211,238,.10) 0%, transparent 50%);
     }
     .layout,.login-page,.main-area,.sidebar{position:relative;z-index:1}
     ::-webkit-scrollbar{width:3px;height:3px}
@@ -73,11 +73,11 @@
     /* ── Sidebar ── */
     .sidebar{
       position:fixed;top:0;left:0;bottom:0;width:var(--sw);
-      background:linear-gradient(180deg,#131929 0%,#111724 100%);
-      border-right:1px solid var(--border);
+      background:linear-gradient(180deg,#172035 0%,#141c2e 50%,#111827 100%);
+      border-right:1px solid rgba(59,130,246,0.18);
       display:flex;flex-direction:column;z-index:100;
     }
-    .sidebar::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),var(--purple),transparent);opacity:.7}
+    .sidebar::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#3b82f6,#8b5cf6,transparent);opacity:.9}
 
     .sidebar-brand{padding:20px 16px 16px;position:relative}
     .brand-wrap{display:flex;align-items:center;gap:12px}
