@@ -5,313 +5,478 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>WB Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    :root {
-      --bg: #08090d;
-      --surface: #0f1117;
-      --surface2: #161820;
-      --surface3: #1e2130;
-      --border: rgba(255,255,255,0.06);
-      --border2: rgba(255,255,255,0.10);
-      --accent: #6366f1;
-      --accent2: #818cf8;
-      --accent-glow: rgba(99,102,241,0.20);
-      --accent-glow2: rgba(99,102,241,0.08);
-      --text: #f1f2f6;
-      --text2: #9095a8;
-      --text3: #555a6e;
-      --success: #22d3a0;
-      --success-bg: rgba(34,211,160,0.10);
-      --warning: #f59e0b;
-      --warning-bg: rgba(245,158,11,0.10);
-      --danger: #f43f5e;
-      --danger-bg: rgba(244,63,94,0.10);
-      --grey-bg: rgba(148,163,184,0.08);
-      --radius: 10px;
-      --radius-sm: 6px;
-      --sidebar-w: 228px;
+    :root{
+      --bg:#07080c;
+      --surface:#0d0f18;
+      --surface2:#131620;
+      --surface3:#1a1d2e;
+      --border:rgba(255,255,255,0.055);
+      --border2:rgba(255,255,255,0.10);
+      --accent:#6366f1;
+      --accent2:#818cf8;
+      --accent3:#a5b4fc;
+      --glow:rgba(99,102,241,0.25);
+      --glow2:rgba(99,102,241,0.08);
+      --purple:#a855f7;
+      --pink:#ec4899;
+      --cyan:#06b6d4;
+      --text:#f0f1f8;
+      --text2:#8b92a8;
+      --text3:#454d65;
+      --success:#10d9a0;
+      --success-bg:rgba(16,217,160,0.09);
+      --warning:#f5a623;
+      --warning-bg:rgba(245,166,35,0.09);
+      --danger:#f43f5e;
+      --danger-bg:rgba(244,63,94,0.09);
+      --r:10px;--r-sm:6px;--r-lg:14px;
+      --sw:240px;
     }
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
-    a{color:inherit;text-decoration:none}
-    button{font-family:inherit;cursor:pointer}
-    input,textarea{font-family:inherit}
-
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar{width:4px;height:4px}
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    ::-webkit-scrollbar{width:3px;height:3px}
     ::-webkit-scrollbar-track{background:transparent}
-    ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px}
+    ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+
+    /* ── Animations ── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    @keyframes glow-pulse{0%,100%{box-shadow:0 0 8px var(--glow)}50%{box-shadow:0 0 20px var(--glow),0 0 40px var(--glow)}}
+    @keyframes slide-in{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes count-up{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+    @keyframes border-flow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+    .anim-fade-up{animation:fadeUp .35s cubic-bezier(.22,1,.36,1) both}
+    .anim-fade-in{animation:fadeIn .25s ease both}
+    .anim-slide-in{animation:slide-in .3s cubic-bezier(.22,1,.36,1) both}
 
     /* ── Layout ── */
     .layout{display:flex;min-height:100vh}
-    .main{flex:1;margin-left:var(--sidebar-w);padding:28px 32px;min-height:100vh;max-width:1400px}
+    .main-area{flex:1;margin-left:var(--sw);min-height:100vh;display:flex;flex-direction:column}
+    .main-content{flex:1;padding:28px 32px;max-width:1400px;width:100%}
 
     /* ── Sidebar ── */
-    .sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
-    .sidebar-brand{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
-    .brand-logo{display:flex;align-items:center;gap:10px}
-    .brand-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-    .brand-name{font-weight:700;font-size:15px;color:var(--text)}
-    .brand-tag{font-size:11px;color:var(--text3);margin-top:1px}
-    .sidebar-section{padding:12px 12px 4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text3)}
-    .sidebar-nav{flex:1;padding:8px;overflow-y:auto}
-    .nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);color:var(--text2);font-size:13.5px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;border:1px solid transparent}
-    .nav-item:hover{background:var(--surface2);color:var(--text)}
-    .nav-item.active{background:var(--accent-glow2);color:var(--accent2);border-color:rgba(99,102,241,0.15)}
-    .nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-    .nav-badge{margin-left:auto;background:var(--accent-glow);color:var(--accent2);font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px}
-    .sidebar-footer{padding:12px;border-top:1px solid var(--border)}
-    .user-card{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--surface2)}
-    .user-avatar{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
-    .user-info{flex:1;min-width:0}
-    .user-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .user-role{font-size:11px;color:var(--text3)}
-    .logout-btn{background:none;border:none;color:var(--text3);padding:4px;border-radius:4px;display:flex;align-items:center;transition:color .15s}
-    .logout-btn:hover{color:var(--danger)}
+    .sidebar{
+      position:fixed;top:0;left:0;bottom:0;width:var(--sw);
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      display:flex;flex-direction:column;z-index:100;
+    }
+    /* Subtle top gradient line */
+    .sidebar::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),var(--purple),transparent);opacity:.6}
 
-    /* ── Page header ── */
-    .page-header{margin-bottom:24px}
-    .page-title{font-size:20px;font-weight:700;color:var(--text)}
-    .page-sub{font-size:13px;color:var(--text3);margin-top:3px}
-    .page-actions{display:flex;gap:8px;margin-top:16px}
+    .sidebar-brand{padding:20px 16px 16px;position:relative}
+    .brand-wrap{display:flex;align-items:center;gap:12px}
+    .brand-gem{
+      width:38px;height:38px;flex-shrink:0;
+      background:linear-gradient(135deg,var(--accent),var(--purple));
+      border-radius:10px;display:flex;align-items:center;justify-content:center;
+      font-size:18px;
+      box-shadow:0 4px 16px var(--glow);
+      animation:glow-pulse 3s ease-in-out infinite;
+    }
+    .brand-text{flex:1}
+    .brand-name{font-size:15px;font-weight:800;letter-spacing:-.3px;color:var(--text)}
+    .brand-sub{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:1px}
+
+    /* ── Nav categories ── */
+    .nav-body{flex:1;padding:8px;overflow-y:auto}
+    .nav-section{padding:16px 8px 4px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3)}
+    .nav-item{
+      display:flex;align-items:center;gap:10px;
+      padding:9px 10px;border-radius:var(--r-sm);
+      color:var(--text2);font-size:13px;font-weight:500;
+      cursor:pointer;transition:all .18s;margin-bottom:2px;
+      position:relative;
+    }
+    .nav-item:hover{background:var(--surface2);color:var(--text);padding-left:14px}
+    .nav-item.active{
+      background:linear-gradient(90deg,var(--glow2),transparent);
+      color:var(--accent3);
+      border-left:2px solid var(--accent);
+      padding-left:8px;
+    }
+    .nav-item.active .nav-icon{color:var(--accent2)}
+    .nav-icon{
+      width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+      font-size:14px;border-radius:6px;flex-shrink:0;
+      background:var(--surface2);transition:all .18s;
+    }
+    .nav-item.active .nav-icon{background:var(--glow2)}
+    .nav-item:hover .nav-icon{background:var(--surface3)}
+    .nav-label{flex:1}
+    .nav-chip{font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;background:var(--glow2);color:var(--accent2);animation:pulse 2s ease infinite}
+
+    .nav-divider{height:1px;background:var(--border);margin:8px}
+
+    /* ── Sidebar footer ── */
+    .sidebar-footer{padding:12px;border-top:1px solid var(--border)}
+    .user-pill{
+      display:flex;align-items:center;gap:10px;padding:10px;
+      border-radius:var(--r-sm);background:var(--surface2);
+      border:1px solid var(--border);transition:background .15s;
+    }
+    .user-pill:hover{background:var(--surface3)}
+    .user-ava{
+      width:32px;height:32px;border-radius:50%;
+      background:linear-gradient(135deg,var(--accent),var(--purple));
+      display:flex;align-items:center;justify-content:center;
+      font-size:13px;font-weight:700;flex-shrink:0;
+      border:2px solid rgba(255,255,255,.08);
+    }
+    .user-info{flex:1;min-width:0}
+    .user-name{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .user-role{font-size:10px;color:var(--text3);margin-top:1px}
+    .logout-btn{
+      padding:5px;border-radius:5px;background:none;border:none;
+      color:var(--text3);cursor:pointer;font-size:14px;
+      transition:all .15s;line-height:1;
+    }
+    .logout-btn:hover{color:var(--danger);background:var(--danger-bg)}
+
+    /* ── Top bar ── */
+    .topbar{
+      height:56px;display:flex;align-items:center;justify-content:space-between;
+      padding:0 32px;border-bottom:1px solid var(--border);
+      background:var(--surface);backdrop-filter:blur(8px);
+      position:sticky;top:0;z-index:50;
+    }
+    .topbar-left{display:flex;align-items:center;gap:8px}
+    .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3)}
+    .breadcrumb-sep{opacity:.4}
+    .breadcrumb-current{color:var(--text);font-weight:600}
+    .topbar-right{display:flex;align-items:center;gap:10px}
+    .sync-btn{
+      display:flex;align-items:center;gap:6px;padding:6px 12px;
+      background:var(--surface2);border:1px solid var(--border2);
+      border-radius:var(--r-sm);color:var(--text2);font-size:12px;font-weight:500;
+      cursor:pointer;transition:all .15s;font-family:inherit;
+    }
+    .sync-btn:hover{background:var(--surface3);color:var(--text)}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);animation:pulse 2s ease infinite}
 
     /* ── Buttons ── */
-    .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;border:1px solid transparent;transition:all .15s;white-space:nowrap}
-    .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-    .btn-primary:hover{background:#5254cc;border-color:#5254cc;box-shadow:0 0 12px var(--accent-glow)}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r-sm);font-size:13px;font-weight:500;border:1px solid transparent;transition:all .18s;white-space:nowrap;cursor:pointer;font-family:inherit}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;box-shadow:0 4px 14px var(--glow)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px var(--glow),0 0 0 1px rgba(99,102,241,.3)}
+    .btn-primary:active{transform:none}
     .btn-ghost{background:transparent;color:var(--text2);border-color:var(--border2)}
-    .btn-ghost:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
-    .btn-danger{background:var(--danger-bg);color:var(--danger);border-color:rgba(244,63,94,0.2)}
-    .btn-danger:hover{background:rgba(244,63,94,0.2)}
+    .btn-ghost:hover{background:var(--surface2);color:var(--text)}
+    .btn-danger{background:var(--danger-bg);color:var(--danger);border-color:rgba(244,63,94,.15)}
+    .btn-danger:hover{background:rgba(244,63,94,.15)}
     .btn-sm{padding:5px 10px;font-size:12px}
-    .btn-icon{padding:6px;border-radius:var(--radius-sm);background:transparent;border:1px solid var(--border);color:var(--text2);transition:all .15s}
-    .btn-icon:hover{background:var(--surface2);color:var(--text)}
+    .btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
 
     /* ── KPI Cards ── */
-    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px}
-    .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;transition:border-color .2s}
-    .kpi-card:hover{border-color:var(--border2)}
-    .kpi-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
-    .kpi-value{font-size:26px;font-weight:700;color:var(--text);line-height:1.1}
-    .kpi-delta{font-size:12px;margin-top:4px;display:flex;align-items:center;gap:4px}
-    .delta-up{color:var(--success)}
-    .delta-down{color:var(--danger)}
-    .delta-flat{color:var(--text3)}
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+    .kpi-card{
+      background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+      padding:16px 18px;transition:all .22s;position:relative;overflow:hidden;
+    }
+    .kpi-card::before{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(135deg,var(--glow2),transparent 60%);
+      opacity:0;transition:opacity .22s;
+    }
+    .kpi-card:hover{border-color:rgba(99,102,241,.25);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+    .kpi-card:hover::before{opacity:1}
+    .kpi-icon{font-size:20px;margin-bottom:10px;display:block}
+    .kpi-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:6px}
+    .kpi-value{font-size:24px;font-weight:800;color:var(--text);line-height:1;font-variant-numeric:tabular-nums;animation:count-up .4s cubic-bezier(.22,1,.36,1) both}
+    .kpi-danger .kpi-value{color:var(--danger)}
+    .kpi-success .kpi-value{color:var(--success)}
+    .kpi-warning .kpi-value{color:var(--warning)}
 
     /* ── Cabinet cards ── */
-    .cabinet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
-    .cabinet-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
-    .cabinet-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--accent-glow2),transparent);opacity:0;transition:opacity .2s}
-    .cabinet-card:hover{border-color:rgba(99,102,241,0.3);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+    .cabinet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+    .cabinet-card{
+      background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+      padding:20px;cursor:pointer;transition:all .22s;
+      position:relative;overflow:hidden;
+    }
+    .cabinet-card::before{
+      content:'';position:absolute;top:0;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,var(--accent),var(--purple),var(--pink));
+      opacity:0;transition:opacity .22s;
+    }
+    .cabinet-card:hover{
+      border-color:rgba(99,102,241,.3);
+      transform:translateY(-3px);
+      box-shadow:0 16px 40px rgba(0,0,0,.4),0 0 0 1px rgba(99,102,241,.1);
+    }
     .cabinet-card:hover::before{opacity:1}
-    .cabinet-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
-    .cabinet-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-    .cabinet-name{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
-    .cabinet-date{font-size:11px;color:var(--text3)}
-    .cabinet-perms{display:flex;gap:4px;flex-wrap:wrap}
-    .perm-tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:var(--accent-glow2);color:var(--accent2);border:1px solid rgba(99,102,241,0.15)}
+    .cab-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+    .cab-icon{
+      width:42px;height:42px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent),var(--purple));
+      display:flex;align-items:center;justify-content:center;font-size:20px;
+      box-shadow:0 4px 12px var(--glow);
+    }
+    .cab-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px}
+    .cab-date{font-size:11px;color:var(--text3)}
+    .cab-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:12px}
+    .cab-tag{
+      font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;
+      background:var(--glow2);color:var(--accent3);
+      border:1px solid rgba(99,102,241,.15);
+    }
+    .cab-arrow{color:var(--text3);font-size:18px;transition:all .22s;margin-top:2px}
+    .cabinet-card:hover .cab-arrow{color:var(--accent2);transform:translateX(4px)}
 
     /* ── Table ── */
-    .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-    .table-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
-    .table-title{font-size:14px;font-weight:600;color:var(--text)}
-    .table-meta{font-size:12px;color:var(--text3)}
+    .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:4px}
+    .table-toolbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+    .table-title-text{font-size:14px;font-weight:700;color:var(--text)}
+    .table-count{font-size:11px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:20px}
     table{width:100%;border-collapse:collapse}
-    thead th{background:var(--surface2);padding:10px 14px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);white-space:nowrap;border-bottom:1px solid var(--border)}
-    tbody td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text2)}
+    thead th{
+      background:var(--surface2);padding:10px 14px;
+      text-align:left;font-size:10.5px;font-weight:700;
+      text-transform:uppercase;letter-spacing:.6px;color:var(--text3);
+      border-bottom:1px solid var(--border);white-space:nowrap;
+    }
+    tbody td{
+      padding:11px 14px;font-size:13px;
+      border-bottom:1px solid var(--border);color:var(--text2);
+      transition:all .12s;
+    }
     tbody tr:last-child td{border-bottom:none}
+    tbody tr{transition:background .12s}
     tbody tr:hover td{background:var(--surface2);color:var(--text)}
+    tbody tr:hover td:first-child{color:var(--accent3)}
 
     /* ── Tabs ── */
-    .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
-    .tab{padding:9px 16px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+    .tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:22px;gap:0}
+    .tab{
+      padding:10px 18px;font-size:13px;font-weight:500;
+      color:var(--text3);cursor:pointer;
+      border-bottom:2px solid transparent;margin-bottom:-1px;
+      transition:all .18s;display:flex;align-items:center;gap:6px;
+    }
     .tab:hover{color:var(--text2)}
-    .tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+    .tab.active{color:var(--accent3);border-bottom-color:var(--accent)}
+    .tab-icon{font-size:14px}
 
-    /* ── Badges / Status ── */
-    .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+    /* ── Badges ── */
+    .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
     .badge-green{background:var(--success-bg);color:var(--success)}
     .badge-red{background:var(--danger-bg);color:var(--danger)}
     .badge-yellow{background:var(--warning-bg);color:var(--warning)}
-    .badge-grey{background:var(--grey-bg);color:var(--text3)}
-    .badge-purple{background:var(--accent-glow2);color:var(--accent2)}
-    .dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+    .badge-grey{background:rgba(148,163,184,.07);color:var(--text3)}
+    .badge-purple{background:var(--glow2);color:var(--accent3)}
+    .dot{width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
 
-    /* ── Date filter bar ── */
-    .filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-    .filter-label{font-size:12px;color:var(--text3);font-weight:500}
-    .date-input{background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;outline:none;transition:border-color .15s}
-    .date-input:focus{border-color:var(--accent)}
-    .date-input::-webkit-calendar-picker-indicator{filter:invert(.5)}
+    /* ── Filter bar ── */
+    .filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--border)}
+    .filter-label{font-size:12px;color:var(--text3);font-weight:600}
+    .date-input{
+      background:var(--surface2);border:1px solid var(--border2);color:var(--text);
+      padding:6px 10px;border-radius:var(--r-sm);font-size:12px;font-family:inherit;outline:none;
+      transition:border-color .15s;
+    }
+    .date-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow2)}
+    .date-input::-webkit-calendar-picker-indicator{filter:invert(.4)}
 
     /* ── Forms ── */
     .form-group{margin-bottom:14px}
-    .form-label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px}
-    .form-input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
-    .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow2)}
+    .form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;letter-spacing:.1px}
+    .form-input{
+      width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);
+      padding:9px 12px;border-radius:var(--r-sm);font-size:13px;font-family:inherit;outline:none;
+      transition:all .15s;
+    }
+    .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--glow2)}
     .form-input::placeholder{color:var(--text3)}
-    .form-hint{font-size:11px;color:var(--text3);margin-top:5px}
-    .form-error{font-size:11px;color:var(--danger);margin-top:5px}
-    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .toggle-wrap{display:flex;align-items:center;gap:8px;padding:6px 0}
+
+    /* ── Panel ── */
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px}
+    .panel-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px}
+    .panel-hint{
+      background:var(--glow2);border:1px solid rgba(99,102,241,.15);
+      border-radius:var(--r-sm);padding:10px 12px;font-size:12px;color:var(--accent3);
+      margin-bottom:14px;line-height:1.6;
+    }
+
+    /* ── Modal ── */
+    .overlay{
+      position:fixed;inset:0;background:rgba(4,5,10,.8);
+      backdrop-filter:blur(6px);z-index:200;
+      display:flex;align-items:center;justify-content:center;padding:20px;
+      animation:fadeIn .18s ease;
+    }
+    .modal{
+      background:var(--surface);border:1px solid var(--border2);border-radius:16px;
+      padding:24px;width:100%;max-width:460px;
+      box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(99,102,241,.08);
+      animation:fadeUp .25s cubic-bezier(.22,1,.36,1);
+    }
+    .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .modal-title{font-size:16px;font-weight:700;color:var(--text)}
+    .modal-close{padding:5px;border-radius:5px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;line-height:1;transition:all .15s}
+    .modal-close:hover{color:var(--danger);background:var(--danger-bg)}
+    .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+
+    /* ── Login ── */
+    .login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;position:relative;overflow:hidden}
+    .login-aurora{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+    .aurora-1{position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.18) 0%,transparent 70%);top:-200px;right:-150px;animation:float 8s ease-in-out infinite}
+    .aurora-2{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(168,85,247,.14) 0%,transparent 70%);bottom:-150px;left:-100px;animation:float 10s ease-in-out infinite reverse}
+    .aurora-3{position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(236,72,153,.10) 0%,transparent 70%);top:40%;left:30%;animation:float 12s ease-in-out infinite}
+    .login-card{
+      background:rgba(13,15,24,.92);
+      border:1px solid var(--border2);border-radius:20px;
+      padding:40px;width:100%;max-width:400px;position:relative;z-index:1;
+      box-shadow:0 32px 80px rgba(0,0,0,.6),0 0 0 1px rgba(99,102,241,.06);
+      animation:fadeUp .4s cubic-bezier(.22,1,.36,1);
+      backdrop-filter:blur(20px);
+    }
+    .login-logo-wrap{display:flex;justify-content:center;margin-bottom:28px}
+    .login-logo{
+      width:56px;height:56px;
+      background:linear-gradient(135deg,var(--accent),var(--purple));
+      border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;
+      box-shadow:0 8px 28px var(--glow),0 0 0 1px rgba(255,255,255,.1);
+      animation:glow-pulse 3s ease-in-out infinite;
+    }
+    .login-title{text-align:center;font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px}
+    .login-sub{text-align:center;font-size:13px;color:var(--text3);margin-bottom:28px}
+    .login-submit{
+      width:100%;padding:11px;border:none;font-family:inherit;font-size:14px;font-weight:700;
+      border-radius:var(--r-sm);cursor:pointer;transition:all .2s;
+      background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;
+      box-shadow:0 4px 18px var(--glow);
+    }
+    .login-submit:hover{transform:translateY(-1px);box-shadow:0 8px 26px var(--glow)}
+    .login-submit:active{transform:none}
+    .login-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+    /* ── Alert ── */
+    .alert{padding:10px 14px;border-radius:var(--r-sm);font-size:13px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px;animation:fadeUp .2s ease}
+    .alert-error{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(244,63,94,.2)}
+    .alert-success{background:var(--success-bg);color:var(--success);border:1px solid rgba(16,217,160,.2)}
+    .alert-info{background:var(--glow2);color:var(--accent3);border:1px solid rgba(99,102,241,.2)}
+
+    /* ── Loader ── */
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .65s linear infinite}
+    .loader{display:flex;align-items:center;justify-content:center;padding:56px;color:var(--text3);gap:12px;font-size:13px}
+
+    /* ── Empty ── */
+    .empty{text-align:center;padding:56px 24px;color:var(--text3)}
+    .empty-icon{font-size:40px;margin-bottom:12px;animation:float 4s ease-in-out infinite}
+    .empty-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px}
+    .empty-sub{font-size:13px}
+
+    /* ── Page header ── */
+    .page-header{margin-bottom:26px;animation:fadeUp .3s cubic-bezier(.22,1,.36,1)}
+    .page-title{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.4px}
+    .page-sub{font-size:13px;color:var(--text3);margin-top:3px}
+    .page-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+
+    /* ── Toggle ── */
+    .toggle-wrap{display:flex;align-items:center;gap:8px;padding:4px 0}
     .toggle-wrap input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
     .toggle-label{font-size:13px;color:var(--text2)}
 
-    /* ── Panel / Modal ── */
-    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
-    .panel-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-    .panel-hint{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
-    .modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:24px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.6)}
-    .modal-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:16px}
-    .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
-
-    /* ── Login page ── */
-    .login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px}
-    .login-bg{position:fixed;inset:0;overflow:hidden;pointer-events:none}
-    .login-blob{position:absolute;border-radius:50%;filter:blur(120px);opacity:.12}
-    .login-blob1{width:600px;height:600px;background:#6366f1;top:-200px;right:-100px}
-    .login-blob2{width:400px;height:400px;background:#a855f7;bottom:-100px;left:-100px}
-    .login-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:36px;width:100%;max-width:380px;position:relative;box-shadow:0 32px 80px rgba(0,0,0,.5)}
-    .login-logo{display:flex;align-items:center;justify-content:center;margin-bottom:28px}
-    .login-logo-icon{width:48px;height:48px;background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 8px 24px var(--accent-glow)}
-    .login-title{text-align:center;font-size:20px;font-weight:700;margin-bottom:4px}
-    .login-sub{text-align:center;font-size:13px;color:var(--text3);margin-bottom:24px}
-    .login-btn{width:100%;padding:10px;background:linear-gradient(135deg,var(--accent),#a855f7);border:none;color:#fff;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px var(--accent-glow)}
-    .login-btn:hover{opacity:.9;box-shadow:0 6px 20px var(--accent-glow)}
-    .login-btn:disabled{opacity:.5;cursor:not-allowed}
-
-    /* ── Alert / Error ── */
-    .alert{padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px}
-    .alert-error{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(244,63,94,.2)}
-    .alert-success{background:var(--success-bg);color:var(--success);border:1px solid rgba(34,211,160,.2)}
-    .alert-info{background:var(--accent-glow2);color:var(--accent2);border:1px solid rgba(99,102,241,.2)}
-
-    /* ── Empty state ── */
-    .empty{text-align:center;padding:48px 24px;color:var(--text3)}
-    .empty-icon{font-size:36px;margin-bottom:12px}
-    .empty-text{font-size:14px;font-weight:500;color:var(--text2);margin-bottom:4px}
-    .empty-sub{font-size:13px}
-
-    /* ── Loader ── */
-    .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
-    .loader{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--text3);gap:12px}
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* ── Divider ── */
-    .divider{height:1px;background:var(--border);margin:16px 0}
-
-    /* ── Utility ── */
-    .flex{display:flex}.flex-col{flex-direction:column}.items-center{align-items:center}.justify-between{justify-content:space-between}.gap-2{gap:8px}.gap-3{gap:12px}.mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-4{margin-top:16px}.mb-4{margin-bottom:16px}.text-sm{font-size:12px}.text-muted{color:var(--text3)}.text-accent{color:var(--accent2)}.font-bold{font-weight:700}.font-medium{font-weight:500}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
+    .gap-2{gap:8px}.gap-3{gap:12px}.mt-4{margin-top:16px}.mb-4{margin-bottom:16px}
+    .text-sm{font-size:12px}.text-muted{color:var(--text3)}.font-bold{font-weight:700}
+    .font-medium{font-weight:500}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .num{font-variant-numeric:tabular-nums}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState, useEffect, useCallback, useRef} = React;
+const {useState, useEffect, useRef} = React;
 
-// ── API ──────────────────────────────────────────────────────────────────────
 const api = {
   token: () => localStorage.getItem('token'),
-  headers: () => ({'Content-Type':'application/json', 'Authorization': `Bearer ${api.token()}`}),
+  headers: () => ({'Content-Type':'application/json','Authorization':`Bearer ${api.token()}`}),
   async req(method, path, body) {
     const r = await fetch(path, {method, headers: api.headers(), body: body ? JSON.stringify(body) : undefined});
     if (r.status === 204) return null;
-    const data = await r.json().catch(() => ({}));
+    const data = await r.json().catch(()=>({}));
     if (!r.ok) throw new Error(data.detail || `HTTP ${r.status}`);
     return data;
   },
-  get: (path) => api.req('GET', path),
-  post: (path, body) => api.req('POST', path, body),
-  put: (path, body) => api.req('PUT', path, body),
-  patch: (path, body) => api.req('PATCH', path, body),
-  del: (path) => api.req('DELETE', path),
+  get: p => api.req('GET', p),
+  post: (p,b) => api.req('POST', p, b),
+  put: (p,b) => api.req('PUT', p, b),
+  patch: (p,b) => api.req('PATCH', p, b),
+  del: p => api.req('DELETE', p),
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = {
-  num: (n) => n == null ? '—' : Number(n).toLocaleString('ru-RU'),
-  rub: (n) => n == null ? '—' : Number(n).toLocaleString('ru-RU', {style:'currency', currency:'RUB', maximumFractionDigits:0}),
-  date: (s) => s ? s.slice(0,10) : '—',
+  num: n => n==null ? '—' : Number(n).toLocaleString('ru-RU'),
+  rub: n => n==null ? '—' : Number(n).toLocaleString('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}),
+  date: s => s ? s.slice(0,10) : '—',
 };
 
-function useAsync(fn, deps=[]) {
+function useData(fn, deps=[]) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    let alive = true;
-    setLoading(true); setError(null);
-    fn().then(d => { if(alive){setData(d);setLoading(false);} })
-        .catch(e => { if(alive){setError(e.message);setLoading(false);} });
-    return () => { alive = false; };
+  const [error, setError] = useState('');
+  useEffect(()=>{
+    let alive=true; setLoading(true); setError('');
+    fn().then(d=>{ if(alive){setData(d);setLoading(false);} })
+       .catch(e=>{ if(alive){setError(e.message);setLoading(false);} });
+    return ()=>{ alive=false; };
   }, deps);
-  return {data, loading, error, reload: () => {}};
+  return {data, loading, error};
 }
 
 // ── Components ───────────────────────────────────────────────────────────────
-
-function Loader() {
-  return <div className="loader"><div className="spinner"/><span>Загрузка...</span></div>;
+function Loader(){return <div className="loader"><div className="spinner"/><span>Загрузка...</span></div>}
+function Alert({type='error',children}){
+  return <div className={`alert alert-${type}`}><span>{type==='error'?'⚠':type==='success'?'✓':'ℹ'}</span><span>{children}</span></div>;
 }
-
-function Alert({type='error', children}) {
-  const icons = {error:'⚠', success:'✓', info:'ℹ'};
-  return <div className={`alert alert-${type}`}><span>{icons[type]}</span><span>{children}</span></div>;
-}
-
-function Modal({title, onClose, children, footer}) {
+function Modal({title,onClose,children,footer}){
   return (
-    <div className="overlay" onClick={e => e.target===e.currentTarget && onClose()}>
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="flex items-center justify-between mb-4">
-          <div className="modal-title" style={{margin:0}}>{title}</div>
-          <button className="btn-icon" onClick={onClose} style={{border:'none',fontSize:16}}>✕</button>
+        <div className="modal-head">
+          <div className="modal-title">{title}</div>
+          <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         {children}
-        {footer && <div className="modal-footer">{footer}</div>}
+        {footer&&<div className="modal-footer">{footer}</div>}
       </div>
     </div>
   );
 }
 
-// ── Login ────────────────────────────────────────────────────────────────────
-function LoginPage({onLogin}) {
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function submit(e) {
-    e.preventDefault();
-    setLoading(true); setError('');
-    try {
-      const data = await api.post('/api/auth/login', {login, password});
-      localStorage.setItem('token', data.token);
-      onLogin(data);
-    } catch(e) {
-      setError(e.message);
-    } finally { setLoading(false); }
+// ── Login ─────────────────────────────────────────────────────────────────────
+function LoginPage({onLogin}){
+  const [login,setLogin]=useState('');
+  const [password,setPassword]=useState('');
+  const [error,setError]=useState('');
+  const [loading,setLoading]=useState(false);
+  async function submit(e){
+    e.preventDefault(); setLoading(true); setError('');
+    try{
+      const d=await api.post('/api/auth/login',{login,password});
+      localStorage.setItem('token',d.token); onLogin(d);
+    }catch(e){setError(e.message);}
+    finally{setLoading(false);}
   }
-
   return (
     <div className="login-page">
-      <div className="login-bg">
-        <div className="login-blob login-blob1"/>
-        <div className="login-blob login-blob2"/>
+      <div className="login-aurora">
+        <div className="aurora-1"/><div className="aurora-2"/><div className="aurora-3"/>
       </div>
       <div className="login-card">
-        <div className="login-logo">
-          <div className="login-logo-icon">🛒</div>
-        </div>
+        <div className="login-logo-wrap"><div className="login-logo">🛒</div></div>
         <div className="login-title">WB Dashboard</div>
-        <div className="login-sub">Аналитика Wildberries в реальном времени</div>
-        {error && <Alert type="error">{error}</Alert>}
+        <div className="login-sub">Аналитика Wildberries · Все кабинеты в одном месте</div>
+        {error&&<Alert type="error">{error}</Alert>}
         <form onSubmit={submit}>
           <div className="form-group">
             <label className="form-label">Логин</label>
@@ -319,10 +484,10 @@ function LoginPage({onLogin}) {
           </div>
           <div className="form-group" style={{marginBottom:20}}>
             <label className="form-label">Пароль</label>
-            <input className="form-input" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Введите пароль" required/>
+            <input className="form-input" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" required/>
           </div>
-          <button className="login-btn" type="submit" disabled={loading}>
-            {loading ? <><span className="spinner" style={{borderTopColor:'#fff',borderColor:'rgba(255,255,255,.3)'}}/> Вход...</> : 'Войти'}
+          <button className="login-submit" type="submit" disabled={loading}>
+            {loading?<><span className="spinner" style={{borderColor:'rgba(255,255,255,.3)',borderTopColor:'#fff',width:13,height:13}}/> Вход...</>:'Войти →'}
           </button>
         </form>
       </div>
@@ -330,674 +495,505 @@ function LoginPage({onLogin}) {
   );
 }
 
-// ── Sidebar ──────────────────────────────────────────────────────────────────
-function Sidebar({page, setPage, isAdmin, user, onLogout}) {
-  const navMain = [
-    {id:'dashboard', icon:'⬡', label:'Дашборд'},
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function Sidebar({page,setPage,isAdmin,user,onLogout,cabinetName}){
+  const nav=[{id:'dashboard',icon:'◈',label:'Обзор',section:'Главная'}];
+  const adminNav=[
+    {id:'admin-cabinets',icon:'🗄',label:'Кабинеты WB',chip:'NEW'},
+    {id:'admin-users',icon:'👥',label:'Пользователи'},
   ];
-  const navAdmin = [
-    {id:'admin-cabinets', icon:'🗄', label:'Кабинеты'},
-    {id:'admin-users', icon:'👥', label:'Пользователи'},
-  ];
+  const isDash = page==='dashboard'||page==='cabinet';
 
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <div className="brand-logo">
-          <div className="brand-icon">🛒</div>
-          <div>
+        <div className="brand-wrap">
+          <div className="brand-gem">🛒</div>
+          <div className="brand-text">
             <div className="brand-name">WB Dashboard</div>
-            <div className="brand-tag">Wildberries Analytics</div>
+            <div className="brand-sub">Wildberries Analytics</div>
           </div>
         </div>
       </div>
-      <nav className="sidebar-nav">
-        <div className="sidebar-section">Навигация</div>
-        {navMain.map(n => (
-          <div key={n.id} className={`nav-item${page===n.id||page.startsWith('cabinet')&&n.id==='dashboard'?' active':''}`} onClick={()=>setPage(n.id)}>
-            <span className="nav-icon">{n.icon}</span>{n.label}
-          </div>
-        ))}
-        {isAdmin && <>
-          <div className="sidebar-section" style={{marginTop:8}}>Администрирование</div>
-          {navAdmin.map(n => (
-            <div key={n.id} className={`nav-item${page===n.id?' active':''}`} onClick={()=>setPage(n.id)}>
-              <span className="nav-icon">{n.icon}</span>{n.label}
+
+      <nav className="nav-body">
+        <div className="nav-section">Навигация</div>
+        <div className={`nav-item anim-slide-in${isDash?' active':''}`} style={{animationDelay:'.05s'}} onClick={()=>setPage('dashboard')}>
+          <div className="nav-icon">◈</div>
+          <span className="nav-label">Обзор кабинетов</span>
+        </div>
+
+        {isAdmin&&<>
+          <div className="nav-divider"/>
+          <div className="nav-section">Администрирование</div>
+          {adminNav.map((n,i)=>(
+            <div key={n.id} className={`nav-item anim-slide-in${page===n.id?' active':''}`} style={{animationDelay:`${.08+i*.04}s`}} onClick={()=>setPage(n.id)}>
+              <div className="nav-icon">{n.icon}</div>
+              <span className="nav-label">{n.label}</span>
+              {n.chip&&<span className="nav-chip">{n.chip}</span>}
             </div>
           ))}
         </>}
+
+        {page==='cabinet'&&cabinetName&&<>
+          <div className="nav-divider"/>
+          <div className="nav-section">Текущий кабинет</div>
+          <div className="nav-item active anim-slide-in" style={{animationDelay:'.1s',fontSize:12}}>
+            <div className="nav-icon">🏪</div>
+            <span className="nav-label" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{cabinetName}</span>
+          </div>
+        </>}
       </nav>
+
       <div className="sidebar-footer">
-        <div className="user-card">
-          <div className="user-avatar">{(user?.login||'?')[0].toUpperCase()}</div>
+        <div className="user-pill">
+          <div className="user-ava">{(user?.login||'?')[0].toUpperCase()}</div>
           <div className="user-info">
             <div className="user-name">{user?.login||'Пользователь'}</div>
             <div className="user-role">{isAdmin?'Администратор':'Просмотр'}</div>
           </div>
-          <button className="logout-btn" onClick={onLogout} title="Выйти">⎋</button>
+          <button className="logout-btn" onClick={onLogout} title="Выйти">⏻</button>
         </div>
       </div>
     </aside>
   );
 }
 
-// ── Dashboard ────────────────────────────────────────────────────────────────
-function Dashboard({onOpenCabinet}) {
-  const [cabinets, setCabinets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+// ── Topbar ────────────────────────────────────────────────────────────────────
+function Topbar({crumbs,isAdmin,onSync}){
+  const [syncing,setSyncing]=useState(false);
+  async function sync(){
+    setSyncing(true);
+    try{await api.post('/api/admin/sync');}catch(e){}
+    setTimeout(()=>setSyncing(false),2000);
+  }
+  return (
+    <div className="topbar">
+      <div className="topbar-left">
+        <div className="breadcrumb">
+          {crumbs.map((c,i)=>(
+            <React.Fragment key={i}>
+              {i>0&&<span className="breadcrumb-sep">/</span>}
+              <span className={i===crumbs.length-1?'breadcrumb-current':''}>{c}</span>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+      <div className="topbar-right">
+        <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11,color:'var(--text3)'}}>
+          <div className="status-dot"/>Система работает
+        </div>
+        {isAdmin&&<button className="sync-btn" onClick={sync} disabled={syncing}>
+          <span style={syncing?{animation:'spin .8s linear infinite',display:'inline-block'}:{}}>{syncing?'↻':'↻'}</span>
+          {syncing?'Синхронизация...':'Обновить данные'}
+        </button>}
+      </div>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    api.get('/api/cabinets')
-      .then(setCabinets)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
+// ── KPI Card ──────────────────────────────────────────────────────────────────
+function KpiCard({label,value,icon,accent,delay=0}){
+  return (
+    <div className={`kpi-card${accent?` kpi-${accent}`:''} anim-fade-up`} style={{animationDelay:`${delay}s`}}>
+      {icon&&<span className="kpi-icon">{icon}</span>}
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value num">{value}</div>
+    </div>
+  );
+}
 
-  if (loading) return <Loader/>;
-  if (error) return <Alert type="error">{error}</Alert>;
-
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function Dashboard({onOpenCabinet}){
+  const {data:cabinets,loading,error}=useData(()=>api.get('/api/cabinets'));
+  if(loading)return<Loader/>;
+  if(error)return<Alert>{error}</Alert>;
   return (
     <div>
       <div className="page-header">
-        <div className="page-title">Дашборд</div>
-        <div className="page-sub">Обзор всех кабинетов Wildberries</div>
-      </div>
-      {cabinets.length === 0
-        ? <div className="empty"><div className="empty-icon">🗄</div><div className="empty-text">Кабинеты не добавлены</div><div className="empty-sub">Перейдите в раздел Кабинеты для добавления</div></div>
-        : <div className="cabinet-grid">
-            {cabinets.map(c => <CabinetCard key={c.id} cabinet={c} onClick={()=>onOpenCabinet(c)}/>)}
+        <div className="page-actions">
+          <div>
+            <div className="page-title">Обзор кабинетов</div>
+            <div className="page-sub">{cabinets?.length||0} кабинет(ов) подключено · данные обновляются каждые 10 мин</div>
           </div>
-      }
-    </div>
-  );
-}
-
-function CabinetCard({cabinet, onClick}) {
-  const perms = cabinet.permissions || {};
-  const tags = [perms.orders&&'Заказы', perms.stock&&'Остатки', perms.ads&&'РК', perms.finances&&'Финансы'].filter(Boolean);
-  return (
-    <div className="cabinet-card" onClick={onClick}>
-      <div className="cabinet-header">
-        <div className="cabinet-icon">🏪</div>
-        <span className="badge badge-green"><span className="dot"/>Активен</span>
-      </div>
-      <div className="cabinet-name">{cabinet.name}</div>
-      <div className="cabinet-date text-muted text-sm" style={{marginBottom:12}}>Добавлен {fmt.date(cabinet.created_at)}</div>
-      <div className="cabinet-perms">
-        {tags.map(t => <span key={t} className="perm-tag">{t}</span>)}
-      </div>
-    </div>
-  );
-}
-
-// ── Cabinet Detail ────────────────────────────────────────────────────────────
-function CabinetDetail({cabinet, onBack}) {
-  const perms = cabinet.permissions || {};
-  const tabs = [
-    perms.orders && {id:'orders', label:'📦 Заказы'},
-    perms.stock  && {id:'stock',  label:'🏭 Остатки'},
-    perms.ads    && {id:'ads',    label:'📣 Реклама'},
-    perms.finances && {id:'finances', label:'💰 Финансы'},
-  ].filter(Boolean);
-
-  const [tab, setTab] = useState(tabs[0]?.id || '');
-  const today = new Date().toISOString().slice(0,10);
-  const week  = new Date(Date.now()-7*864e5).toISOString().slice(0,10);
-  const [dateFrom, setDateFrom] = useState(week);
-  const [dateTo, setDateTo] = useState(today);
-
-  return (
-    <div>
-      <div className="page-header">
-        <div className="flex items-center gap-2">
-          <button className="btn btn-ghost btn-sm" onClick={onBack}>← Назад</button>
-          <div className="page-title">{cabinet.name}</div>
-        </div>
-        <div className="page-sub">Детальная аналитика кабинета</div>
-      </div>
-
-      <div className="tabs">
-        {tabs.map(t => <div key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</div>)}
-      </div>
-
-      {(tab==='orders'||tab==='ads'||tab==='finances') && (
-        <div className="filter-bar">
-          <span className="filter-label">Период:</span>
-          <input type="date" className="date-input" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}/>
-          <span className="text-muted">—</span>
-          <input type="date" className="date-input" value={dateTo} onChange={e=>setDateTo(e.target.value)}/>
-        </div>
-      )}
-
-      {tab==='orders'   && <OrdersTab cabinetId={cabinet.id} dateFrom={dateFrom} dateTo={dateTo}/>}
-      {tab==='stock'    && <StockTab cabinetId={cabinet.id}/>}
-      {tab==='ads'      && <AdsTab cabinetId={cabinet.id} dateFrom={dateFrom} dateTo={dateTo}/>}
-      {tab==='finances' && <FinancesTab cabinetId={cabinet.id} dateFrom={dateFrom} dateTo={dateTo}/>}
-    </div>
-  );
-}
-
-function OrdersTab({cabinetId, dateFrom, dateTo}) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    setLoading(true);
-    api.get(`/api/cabinets/${cabinetId}/orders?date_from=${dateFrom}&date_to=${dateTo}`)
-      .then(setData).catch(e=>setError(e.message)).finally(()=>setLoading(false));
-  }, [cabinetId, dateFrom, dateTo]);
-
-  if (loading) return <Loader/>;
-  if (error) return <Alert type="error">{error}</Alert>;
-  const total = (data||[]).reduce((s,r)=>s+(r.price||0),0);
-
-  return (
-    <div>
-      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))'}}>
-        <KpiCard label="Заказов" value={fmt.num(data?.length)} icon="📦"/>
-        <KpiCard label="Сумма" value={fmt.rub(total)} icon="₽"/>
-      </div>
-      <div className="table-wrap">
-        <div className="table-header">
-          <span className="table-title">Заказы</span>
-          <span className="table-meta">{data?.length} записей</span>
-        </div>
-        {(!data||data.length===0)
-          ? <div className="empty"><div className="empty-icon">📭</div><div className="empty-text">Заказов нет</div></div>
-          : <table>
-              <thead><tr><th>Дата</th><th>ID заказа</th><th>Артикул</th><th>Статус</th><th>Цена</th><th>Регион</th></tr></thead>
-              <tbody>
-                {data.map((r,i) => (
-                  <tr key={i}>
-                    <td className="num">{r.date}</td>
-                    <td className="text-muted">{r.order_id}</td>
-                    <td>{r.article||'—'}</td>
-                    <td><StatusBadge status={r.status}/></td>
-                    <td className="num">{fmt.rub(r.price)}</td>
-                    <td className="text-muted">{r.region||'—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-        }
-      </div>
-    </div>
-  );
-}
-
-function StatusBadge({status}) {
-  if (!status) return <span className="badge badge-grey">—</span>;
-  const s = status.toLowerCase();
-  if (s.includes('cancel')) return <span className="badge badge-red"><span className="dot"/>Отмена</span>;
-  if (s.includes('deliver')||s.includes('доставл')) return <span className="badge badge-green"><span className="dot"/>Доставлен</span>;
-  if (s.includes('new')||s.includes('создан')) return <span className="badge badge-purple"><span className="dot"/>Новый</span>;
-  return <span className="badge badge-grey">{status}</span>;
-}
-
-function StockTab({cabinetId}) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
-  useEffect(() => {
-    api.get(`/api/cabinets/${cabinetId}/stock`)
-      .then(setData).catch(e=>setError(e.message)).finally(()=>setLoading(false));
-  }, [cabinetId]);
-
-  if (loading) return <Loader/>;
-  if (error) return <Alert type="error">{error}</Alert>;
-
-  const filtered = (data||[]).filter(r => filter==='all' || r.alert===filter);
-  const counts = {red:0, yellow:0, green:0, grey:0};
-  (data||[]).forEach(r => { if(counts[r.alert]!=null) counts[r.alert]++; });
-
-  return (
-    <div>
-      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))'}}>
-        <KpiCard label="Позиций" value={fmt.num(data?.length)} icon="📦"/>
-        <KpiCard label="🔴 Срочно" value={fmt.num(counts.red)} icon="" accent="danger"/>
-        <KpiCard label="🟡 Скоро" value={fmt.num(counts.yellow)} icon="" accent="warning"/>
-        <KpiCard label="🟢 Норма" value={fmt.num(counts.green)} icon="" accent="success"/>
-      </div>
-      <div className="filter-bar">
-        <span className="filter-label">Фильтр:</span>
-        {[['all','Все'],['red','Срочно'],['yellow','Скоро'],['green','Норма'],['grey','Нет данных']].map(([v,l])=>(
-          <button key={v} className={`btn btn-sm${filter===v?' btn-primary':' btn-ghost'}`} onClick={()=>setFilter(v)}>{l}</button>
-        ))}
-      </div>
-      <div className="table-wrap">
-        <div className="table-header">
-          <span className="table-title">Остатки</span>
-          <span className="table-meta">{filtered.length} позиций</span>
-        </div>
-        {filtered.length===0
-          ? <div className="empty"><div className="empty-icon">📭</div><div className="empty-text">Нет данных</div></div>
-          : <table>
-              <thead><tr><th>Артикул</th><th>Название</th><th>Склад</th><th>Остаток</th><th>Дней осталось</th><th>Статус</th></tr></thead>
-              <tbody>
-                {filtered.map((r,i)=>(
-                  <tr key={i}>
-                    <td>{r.article||'—'}</td>
-                    <td style={{maxWidth:200}} className="truncate">{r.name||'—'}</td>
-                    <td className="text-muted">{r.warehouse||'—'}</td>
-                    <td className="num font-bold">{fmt.num(r.quantity)}</td>
-                    <td className="num">{r.days_left!=null?r.days_left+'д':'—'}</td>
-                    <td><AlertBadge alert={r.alert}/></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-        }
-      </div>
-    </div>
-  );
-}
-
-function AlertBadge({alert}) {
-  if (alert==='red')    return <span className="badge badge-red"><span className="dot"/>Срочно &lt;7д</span>;
-  if (alert==='yellow') return <span className="badge badge-yellow"><span className="dot"/>Скоро 7-14д</span>;
-  if (alert==='green')  return <span className="badge badge-green"><span className="dot"/>Норма</span>;
-  return <span className="badge badge-grey">Нет продаж</span>;
-}
-
-function AdsTab({cabinetId, dateFrom, dateTo}) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    setLoading(true);
-    api.get(`/api/cabinets/${cabinetId}/ads?date_from=${dateFrom}&date_to=${dateTo}`)
-      .then(setData).catch(e=>setError(e.message)).finally(()=>setLoading(false));
-  }, [cabinetId, dateFrom, dateTo]);
-
-  if (loading) return <Loader/>;
-  if (error) return <Alert type="error">{error}</Alert>;
-
-  const totalSpend = (data||[]).reduce((s,r)=>s+(r.spend||0),0);
-  const totalOrders = (data||[]).reduce((s,r)=>s+(r.orders||0),0);
-  const totalViews = (data||[]).reduce((s,r)=>s+(r.views||0),0);
-  const cpo = totalOrders>0 ? totalSpend/totalOrders : 0;
-
-  return (
-    <div>
-      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))'}}>
-        <KpiCard label="Расходы" value={fmt.rub(totalSpend)} icon="💸"/>
-        <KpiCard label="Заказы с РК" value={fmt.num(totalOrders)} icon="🛒"/>
-        <KpiCard label="Показы" value={fmt.num(totalViews)} icon="👁"/>
-        <KpiCard label="CPO" value={fmt.rub(cpo)} icon="📊"/>
-      </div>
-      <div className="table-wrap">
-        <div className="table-header">
-          <span className="table-title">Рекламные кампании</span>
-          <span className="table-meta">{data?.length} записей</span>
-        </div>
-        {(!data||data.length===0)
-          ? <div className="empty"><div className="empty-icon">📭</div><div className="empty-text">Нет данных по рекламе</div></div>
-          : <table>
-              <thead><tr><th>Дата</th><th>Кампания</th><th>Расходы</th><th>Показы</th><th>Клики</th><th>Заказы</th></tr></thead>
-              <tbody>
-                {data.map((r,i)=>(
-                  <tr key={i}>
-                    <td className="num">{r.date}</td>
-                    <td style={{maxWidth:200}} className="truncate">{r.campaign_name||r.campaign_id}</td>
-                    <td className="num font-bold">{fmt.rub(r.spend)}</td>
-                    <td className="num">{fmt.num(r.views)}</td>
-                    <td className="num">{fmt.num(r.clicks)}</td>
-                    <td className="num">{fmt.num(r.orders)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-        }
-      </div>
-    </div>
-  );
-}
-
-function FinancesTab({cabinetId, dateFrom, dateTo}) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    setLoading(true);
-    api.get(`/api/cabinets/${cabinetId}/finances?date_from=${dateFrom}&date_to=${dateTo}`)
-      .then(setData).catch(e=>setError(e.message)).finally(()=>setLoading(false));
-  }, [cabinetId, dateFrom, dateTo]);
-
-  if (loading) return <Loader/>;
-  if (error) return <Alert type="error">{error}</Alert>;
-
-  const sum = k => (data||[]).reduce((s,r)=>s+(r[k]||0),0);
-
-  return (
-    <div>
-      <div className="kpi-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))'}}>
-        <KpiCard label="Выручка" value={fmt.rub(sum('revenue'))} icon="📈"/>
-        <KpiCard label="К выплате" value={fmt.rub(sum('to_pay'))} icon="💰"/>
-        <KpiCard label="Комиссия" value={fmt.rub(sum('commission'))} icon="📋"/>
-        <KpiCard label="Логистика" value={fmt.rub(sum('logistics'))} icon="🚚"/>
-        <KpiCard label="Штрафы" value={fmt.rub(sum('penalty'))} icon="⚠" accent="danger"/>
-      </div>
-      <div className="table-wrap">
-        <div className="table-header">
-          <span className="table-title">Финансовый отчёт</span>
-          <span className="table-meta">{data?.length} дней</span>
-        </div>
-        {(!data||data.length===0)
-          ? <div className="empty"><div className="empty-icon">📭</div><div className="empty-text">Нет финансовых данных</div></div>
-          : <table>
-              <thead><tr><th>Дата</th><th>Выручка</th><th>К выплате</th><th>Комиссия</th><th>Логистика</th><th>Штрафы</th></tr></thead>
-              <tbody>
-                {data.map((r,i)=>(
-                  <tr key={i}>
-                    <td className="num">{r.date}</td>
-                    <td className="num">{fmt.rub(r.revenue)}</td>
-                    <td className="num font-bold" style={{color:'var(--success)'}}>{fmt.rub(r.to_pay)}</td>
-                    <td className="num">{fmt.rub(r.commission)}</td>
-                    <td className="num">{fmt.rub(r.logistics)}</td>
-                    <td className="num" style={{color: r.penalty>0?'var(--danger)':'inherit'}}>{fmt.rub(r.penalty)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-        }
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({label, value, icon, accent}) {
-  const colors = {danger:'var(--danger)', warning:'var(--warning)', success:'var(--success)'};
-  return (
-    <div className="kpi-card">
-      <div className="kpi-label">{icon && <span>{icon}</span>}{label}</div>
-      <div className="kpi-value num" style={accent?{color:colors[accent]}:{}}>{value}</div>
-    </div>
-  );
-}
-
-// ── Admin Cabinets ────────────────────────────────────────────────────────────
-function AdminCabinets() {
-  const [cabinets, setCabinets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState('');
-  const [token, setToken] = useState('');
-  const [err, setErr] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    api.get('/api/admin/cabinets').then(setCabinets).finally(()=>setLoading(false));
-  }, []);
-
-  async function add(e) {
-    e.preventDefault(); setErr(''); setSaving(true);
-    try {
-      const c = await api.post('/api/admin/cabinets', {name, api_token: token});
-      setCabinets(p=>[...p, c]);
-      setName(''); setToken(''); setShowForm(false);
-    } catch(e) { setErr(e.message); }
-    finally { setSaving(false); }
-  }
-
-  async function del(id) {
-    if (!confirm('Удалить кабинет?')) return;
-    await api.del(`/api/admin/cabinets/${id}`);
-    setCabinets(p=>p.filter(c=>c.id!==id));
-  }
-
-  if (loading) return <Loader/>;
-
-  return (
-    <div>
-      <div className="page-header">
-        <div className="flex items-center justify-between">
-          <div><div className="page-title">Кабинеты WB</div><div className="page-sub">Управление кабинетами и API токенами</div></div>
-          <button className="btn btn-primary" onClick={()=>setShowForm(true)}>+ Добавить кабинет</button>
         </div>
       </div>
-
-      {showForm && (
-        <div className="panel" style={{maxWidth:480,marginBottom:20}}>
-          <div className="panel-title">🗄 Новый кабинет</div>
-          <div className="panel-hint">Токен проверяется при добавлении. Убедитесь что у токена есть доступ к нужным разделам WB API.</div>
-          {err && <Alert type="error">{err}</Alert>}
-          <form onSubmit={add}>
-            <div className="form-group">
-              <label className="form-label">Название кабинета</label>
-              <input className="form-input" value={name} onChange={e=>setName(e.target.value)} placeholder="Мой магазин" required/>
-            </div>
-            <div className="form-group">
-              <label className="form-label">API токен WB</label>
-              <input className="form-input" value={token} onChange={e=>setToken(e.target.value)} placeholder="eyJhbGci..." required/>
-            </div>
-            <div className="flex gap-2">
-              <button className="btn btn-primary" type="submit" disabled={saving}>{saving?'Добавление...':'Добавить'}</button>
-              <button className="btn btn-ghost" type="button" onClick={()=>{setShowForm(false);setErr('');}}>Отмена</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {cabinets.length===0
-        ? <div className="empty"><div className="empty-icon">🗄</div><div className="empty-text">Кабинеты не добавлены</div></div>
-        : <div className="table-wrap">
-            <table>
-              <thead><tr><th>#</th><th>Название</th><th>Добавлен</th><th></th></tr></thead>
-              <tbody>
-                {cabinets.map(c=>(
-                  <tr key={c.id}>
-                    <td className="text-muted">{c.id}</td>
-                    <td className="font-bold">{c.name}</td>
-                    <td className="text-muted">{fmt.date(c.created_at)}</td>
-                    <td><button className="btn btn-danger btn-sm" onClick={()=>del(c.id)}>Удалить</button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-      }
-    </div>
-  );
-}
-
-// ── Admin Users ───────────────────────────────────────────────────────────────
-function AdminUsers() {
-  const [users, setUsers] = useState([]);
-  const [cabinets, setCabinets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
-  const [permUser, setPermUser] = useState(null);
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [err, setErr] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    Promise.all([api.get('/api/admin/users'), api.get('/api/admin/cabinets')])
-      .then(([u,c])=>{setUsers(u);setCabinets(c);})
-      .finally(()=>setLoading(false));
-  }, []);
-
-  async function create(e) {
-    e.preventDefault(); setErr(''); setSaving(true);
-    try {
-      const u = await api.post('/api/admin/users', {login, password, is_admin: isAdmin});
-      setUsers(p=>[...p, u]);
-      setLogin(''); setPassword(''); setIsAdmin(false); setShowCreate(false);
-    } catch(e){setErr(e.message);}
-    finally{setSaving(false);}
-  }
-
-  async function toggle(id) {
-    const u = await api.patch(`/api/admin/users/${id}/active`);
-    setUsers(p=>p.map(x=>x.id===id?{...x,...u}:x));
-  }
-
-  async function del(id) {
-    if (!confirm('Удалить пользователя?')) return;
-    await api.del(`/api/admin/users/${id}`);
-    setUsers(p=>p.filter(u=>u.id!==id));
-  }
-
-  if (loading) return <Loader/>;
-
-  return (
-    <div>
-      <div className="page-header">
-        <div className="flex items-center justify-between">
-          <div><div className="page-title">Пользователи</div><div className="page-sub">Управление доступом к кабинетам</div></div>
-          <button className="btn btn-primary" onClick={()=>setShowCreate(true)}>+ Добавить пользователя</button>
-        </div>
-      </div>
-
-      {showCreate && (
-        <Modal title="Новый пользователь" onClose={()=>{setShowCreate(false);setErr('');}}>
-          {err && <Alert type="error">{err}</Alert>}
-          <form onSubmit={create}>
-            <div className="form-group">
-              <label className="form-label">Логин</label>
-              <input className="form-input" value={login} onChange={e=>setLogin(e.target.value)} placeholder="user123" required/>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Пароль (мин. 8 символов)</label>
-              <input className="form-input" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" required/>
-            </div>
-            <div className="toggle-wrap">
-              <input type="checkbox" id="isAdmin" checked={isAdmin} onChange={e=>setIsAdmin(e.target.checked)}/>
-              <label htmlFor="isAdmin" className="toggle-label">Администратор</label>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-ghost" type="button" onClick={()=>{setShowCreate(false);setErr('');}}>Отмена</button>
-              <button className="btn btn-primary" type="submit" disabled={saving}>{saving?'Создание...':'Создать'}</button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {permUser && <PermissionsModal user={permUser} cabinets={cabinets} onClose={()=>setPermUser(null)}/>}
-
-      <div className="table-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Логин</th><th>Роль</th><th>Статус</th><th>Создан</th><th>Действия</th></tr></thead>
-          <tbody>
-            {users.map(u=>(
-              <tr key={u.id}>
-                <td className="text-muted">{u.id}</td>
-                <td className="font-bold">{u.login}</td>
-                <td>{u.is_admin ? <span className="badge badge-purple">Админ</span> : <span className="badge badge-grey">Просмотр</span>}</td>
-                <td>{u.is_active ? <span className="badge badge-green"><span className="dot"/>Активен</span> : <span className="badge badge-red"><span className="dot"/>Отключён</span>}</td>
-                <td className="text-muted">{fmt.date(u.created_at)}</td>
-                <td>
-                  <div className="flex gap-2">
-                    <button className="btn btn-ghost btn-sm" onClick={()=>setPermUser(u)}>Доступы</button>
-                    <button className="btn btn-ghost btn-sm" onClick={()=>toggle(u.id)}>{u.is_active?'Отключить':'Включить'}</button>
-                    <button className="btn btn-danger btn-sm" onClick={()=>del(u.id)}>✕</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function PermissionsModal({user, cabinets, onClose}) {
-  const [perms, setPerms] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState('');
-
-  useEffect(() => {
-    api.get(`/api/admin/users/${user.id}/permissions`).then(data => {
-      const map = {};
-      data.forEach(p => { map[p.cabinet_id] = {orders:!!p.can_view_orders, stock:!!p.can_view_stock, ads:!!p.can_view_ads, finances:!!p.can_view_finances}; });
-      setPerms(map);
-    }).finally(()=>setLoading(false));
-  }, [user.id]);
-
-  function toggle(cabId, field) {
-    setPerms(p => ({...p, [cabId]: {...(p[cabId]||{}), [field]: !(p[cabId]?.[field])}}));
-  }
-
-  async function save() {
-    setSaving(true); setErr('');
-    try {
-      const permissions = cabinets.map(c => ({
-        cabinet_id: c.id,
-        can_view_orders: !!(perms[c.id]?.orders),
-        can_view_stock: !!(perms[c.id]?.stock),
-        can_view_ads: !!(perms[c.id]?.ads),
-        can_view_finances: !!(perms[c.id]?.finances),
-      }));
-      await api.put(`/api/admin/users/${user.id}/permissions`, {permissions});
-      onClose();
-    } catch(e){setErr(e.message);}
-    finally{setSaving(false);}
-  }
-
-  return (
-    <Modal title={`Доступы: ${user.login}`} onClose={onClose}
-      footer={<><button className="btn btn-ghost" onClick={onClose}>Отмена</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Сохранение...':'Сохранить'}</button></>}>
-      {err && <Alert type="error">{err}</Alert>}
-      {loading ? <Loader/> : cabinets.length===0 ? <div className="empty"><div className="empty-text">Нет кабинетов</div></div> :
-        <div style={{display:'flex',flexDirection:'column',gap:12}}>
-          {cabinets.map(c => (
-            <div key={c.id} style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',padding:'12px 14px'}}>
-              <div style={{fontWeight:600,marginBottom:10,color:'var(--text)'}}>{c.name}</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                {[['orders','📦 Заказы'],['stock','🏭 Остатки'],['ads','📣 Реклама'],['finances','💰 Финансы']].map(([f,l])=>(
-                  <label key={f} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--text2)'}}>
-                    <input type="checkbox" style={{accentColor:'var(--accent)'}} checked={!!(perms[c.id]?.[f])} onChange={()=>toggle(c.id,f)}/>
-                    {l}
-                  </label>
-                ))}
+      {(!cabinets||cabinets.length===0)
+        ?<div className="empty"><div className="empty-icon">🗄</div><div className="empty-title">Кабинеты не добавлены</div><div className="empty-sub">Перейдите в раздел «Кабинеты WB» для добавления</div></div>
+        :<div className="cabinet-grid">
+          {cabinets.map((c,i)=>(
+            <div key={c.id} className="cabinet-card anim-fade-up" style={{animationDelay:`${i*.06}s`}} onClick={()=>onOpenCabinet(c)}>
+              <div className="cab-head">
+                <div className="cab-icon">🏪</div>
+                <div className="cab-arrow">›</div>
+              </div>
+              <div className="cab-name">{c.name}</div>
+              <div className="cab-date text-muted">Добавлен {fmt.date(c.created_at)}</div>
+              <div className="cab-tags">
+                {c.permissions?.orders&&<span className="cab-tag">📦 Заказы</span>}
+                {c.permissions?.stock&&<span className="cab-tag">🏭 Остатки</span>}
+                {c.permissions?.ads&&<span className="cab-tag">📣 Реклама</span>}
+                {c.permissions?.finances&&<span className="cab-tag">💰 Финансы</span>}
               </div>
             </div>
           ))}
         </div>
       }
-    </Modal>
+    </div>
   );
 }
 
-// ── App ──────────────────────────────────────────────────────────────────────
-function App() {
-  const [auth, setAuth] = useState(() => {
-    const t = localStorage.getItem('token');
-    if (!t) return null;
-    try {
-      const p = JSON.parse(atob(t.split('.')[1]));
-      if (p.exp * 1000 < Date.now()) { localStorage.removeItem('token'); return null; }
-      return {token: t, is_admin: p.admin, login: p.sub};
-    } catch { localStorage.removeItem('token'); return null; }
-  });
-  const [page, setPage] = useState('dashboard');
-  const [activeCabinet, setActiveCabinet] = useState(null);
-
-  function logout() { localStorage.removeItem('token'); setAuth(null); }
-
-  if (!auth) return <LoginPage onLogin={d=>setAuth(d)}/>;
-
-  function openCabinet(c) { setActiveCabinet(c); setPage('cabinet'); }
-  function backToDashboard() { setActiveCabinet(null); setPage('dashboard'); }
-
-  let content;
-  if (page==='cabinet' && activeCabinet) content = <CabinetDetail cabinet={activeCabinet} onBack={backToDashboard}/>;
-  else if (page==='admin-cabinets') content = <AdminCabinets/>;
-  else if (page==='admin-users') content = <AdminUsers/>;
-  else content = <Dashboard onOpenCabinet={openCabinet}/>;
-
+// ── Cabinet Detail ────────────────────────────────────────────────────────────
+function CabinetDetail({cabinet,onBack}){
+  const perms=cabinet.permissions||{};
+  const tabs=[
+    perms.orders&&{id:'orders',icon:'📦',label:'Заказы'},
+    perms.stock&&{id:'stock',icon:'🏭',label:'Остатки'},
+    perms.ads&&{id:'ads',icon:'📣',label:'Реклама'},
+    perms.finances&&{id:'finances',icon:'💰',label:'Финансы'},
+  ].filter(Boolean);
+  const [tab,setTab]=useState(tabs[0]?.id||'');
+  const today=new Date().toISOString().slice(0,10);
+  const week=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+  const [df,setDf]=useState(week);
+  const [dt,setDt]=useState(today);
   return (
-    <div className="layout">
-      <Sidebar page={page} setPage={p=>{setPage(p);setActiveCabinet(null);}} isAdmin={auth.is_admin} user={auth} onLogout={logout}/>
-      <main className="main">{content}</main>
+    <div>
+      <div className="page-header">
+        <div className="page-actions">
+          <div className="flex items-center gap-2">
+            <button className="btn btn-ghost btn-sm" onClick={onBack}>← Назад</button>
+            <div>
+              <div className="page-title">{cabinet.name}</div>
+              <div className="page-sub">Детальная аналитика</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="tabs">
+        {tabs.map(t=>(
+          <div key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>
+            <span className="tab-icon">{t.icon}</span>{t.label}
+          </div>
+        ))}
+      </div>
+      {(tab==='orders'||tab==='ads'||tab==='finances')&&(
+        <div className="filter-bar">
+          <span className="filter-label">Период:</span>
+          <input type="date" className="date-input" value={df} onChange={e=>setDf(e.target.value)}/>
+          <span className="text-muted">—</span>
+          <input type="date" className="date-input" value={dt} onChange={e=>setDt(e.target.value)}/>
+        </div>
+      )}
+      {tab==='orders'&&<OrdersTab id={cabinet.id} df={df} dt={dt}/>}
+      {tab==='stock'&&<StockTab id={cabinet.id}/>}
+      {tab==='ads'&&<AdsTab id={cabinet.id} df={df} dt={dt}/>}
+      {tab==='finances'&&<FinancesTab id={cabinet.id} df={df} dt={dt}/>}
     </div>
   );
+}
+
+function OrdersTab({id,df,dt}){
+  const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/orders?date_from=${df}&date_to=${dt}`),[id,df,dt]);
+  if(loading)return<Loader/>;if(error)return<Alert>{error}</Alert>;
+  const total=(data||[]).reduce((s,r)=>s+(r.price||0),0);
+  return <div className="anim-fade-up">
+    <div className="kpi-grid">
+      <KpiCard label="Заказов" value={fmt.num(data?.length)} icon="📦" delay={0}/>
+      <KpiCard label="Сумма заказов" value={fmt.rub(total)} icon="₽" delay={.05}/>
+    </div>
+    <DataTable title="Заказы" count={data?.length} empty="Заказов нет"
+      head={['Дата','ID','Артикул','Статус','Цена','Регион']}
+      rows={(data||[]).map((r,i)=>[r.date, <span className="text-muted">{r.order_id}</span>, r.article||'—', <StatusBadge s={r.status}/>, <span className="num">{fmt.rub(r.price)}</span>, r.region||'—'])}/>
+  </div>;
+}
+
+function StatusBadge({s}){
+  if(!s)return<span className="badge badge-grey">—</span>;
+  const l=s.toLowerCase();
+  if(l.includes('cancel'))return<span className="badge badge-red"><span className="dot"/>Отмена</span>;
+  if(l.includes('deliver'))return<span className="badge badge-green"><span className="dot"/>Доставлен</span>;
+  if(l.includes('new')||l.includes('created'))return<span className="badge badge-purple"><span className="dot"/>Новый</span>;
+  return<span className="badge badge-grey">{s}</span>;
+}
+
+function StockTab({id}){
+  const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/stock`),[id]);
+  const [f,setF]=useState('all');
+  if(loading)return<Loader/>;if(error)return<Alert>{error}</Alert>;
+  const cnt={red:0,yellow:0,green:0,grey:0};
+  (data||[]).forEach(r=>{ if(cnt[r.alert]!=null)cnt[r.alert]++; });
+  const filtered=(data||[]).filter(r=>f==='all'||r.alert===f);
+  return <div className="anim-fade-up">
+    <div className="kpi-grid">
+      <KpiCard label="Позиций" value={fmt.num(data?.length)} icon="📦" delay={0}/>
+      <KpiCard label="Срочно" value={fmt.num(cnt.red)} icon="🔴" accent="danger" delay={.05}/>
+      <KpiCard label="Скоро закончится" value={fmt.num(cnt.yellow)} icon="🟡" accent="warning" delay={.1}/>
+      <KpiCard label="В норме" value={fmt.num(cnt.green)} icon="🟢" accent="success" delay={.15}/>
+    </div>
+    <div style={{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap'}}>
+      {[['all','Все'],['red','Срочно'],['yellow','Скоро'],['green','Норма'],['grey','Нет продаж']].map(([v,l])=>(
+        <button key={v} className={`btn btn-sm${f===v?' btn-primary':' btn-ghost'}`} onClick={()=>setF(v)}>{l}</button>
+      ))}
+    </div>
+    <DataTable title="Остатки" count={filtered.length} empty="Нет данных"
+      head={['Артикул','Название','Склад','Остаток','Дней','Статус']}
+      rows={filtered.map(r=>[r.article||'—', <span className="truncate" style={{maxWidth:180,display:'block'}}>{r.name||'—'}</span>, <span className="text-muted">{r.warehouse||'—'}</span>, <span className="num font-bold">{fmt.num(r.quantity)}</span>, <span className="num">{r.days_left!=null?r.days_left+'д':'—'}</span>, <AlertBadge a={r.alert}/>])}/>
+  </div>;
+}
+function AlertBadge({a}){
+  if(a==='red')return<span className="badge badge-red"><span className="dot"/>Срочно</span>;
+  if(a==='yellow')return<span className="badge badge-yellow"><span className="dot"/>Скоро</span>;
+  if(a==='green')return<span className="badge badge-green"><span className="dot"/>Норма</span>;
+  return<span className="badge badge-grey">Нет продаж</span>;
+}
+
+function AdsTab({id,df,dt}){
+  const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/ads?date_from=${df}&date_to=${dt}`),[id,df,dt]);
+  if(loading)return<Loader/>;if(error)return<Alert>{error}</Alert>;
+  const spend=(data||[]).reduce((s,r)=>s+(r.spend||0),0);
+  const ord=(data||[]).reduce((s,r)=>s+(r.orders||0),0);
+  const views=(data||[]).reduce((s,r)=>s+(r.views||0),0);
+  return <div className="anim-fade-up">
+    <div className="kpi-grid">
+      <KpiCard label="Расходы на рекламу" value={fmt.rub(spend)} icon="💸" delay={0}/>
+      <KpiCard label="Заказы с рекламы" value={fmt.num(ord)} icon="🛒" delay={.05}/>
+      <KpiCard label="Показы" value={fmt.num(views)} icon="👁" delay={.1}/>
+      <KpiCard label="CPO" value={fmt.rub(ord>0?spend/ord:0)} icon="📊" delay={.15}/>
+    </div>
+    <DataTable title="Рекламные кампании" count={data?.length} empty="Нет данных"
+      head={['Дата','Кампания','Расходы','Показы','Клики','Заказы']}
+      rows={(data||[]).map(r=>[r.date, <span className="truncate" style={{maxWidth:180,display:'block'}}>{r.campaign_name||r.campaign_id}</span>, <span className="num font-bold">{fmt.rub(r.spend)}</span>, <span className="num">{fmt.num(r.views)}</span>, <span className="num">{fmt.num(r.clicks)}</span>, <span className="num">{fmt.num(r.orders)}</span>])}/>
+  </div>;
+}
+
+function FinancesTab({id,df,dt}){
+  const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/finances?date_from=${df}&date_to=${dt}`),[id,df,dt]);
+  if(loading)return<Loader/>;if(error)return<Alert>{error}</Alert>;
+  const s=k=>(data||[]).reduce((a,r)=>a+(r[k]||0),0);
+  return <div className="anim-fade-up">
+    <div className="kpi-grid">
+      <KpiCard label="Выручка" value={fmt.rub(s('revenue'))} icon="📈" delay={0}/>
+      <KpiCard label="К выплате" value={fmt.rub(s('to_pay'))} icon="💰" accent="success" delay={.05}/>
+      <KpiCard label="Комиссия WB" value={fmt.rub(s('commission'))} icon="📋" delay={.1}/>
+      <KpiCard label="Логистика" value={fmt.rub(s('logistics'))} icon="🚚" delay={.15}/>
+      <KpiCard label="Штрафы" value={fmt.rub(s('penalty'))} icon="⚠" accent="danger" delay={.2}/>
+    </div>
+    <DataTable title="Финансовый отчёт" count={data?.length} empty="Нет данных"
+      head={['Дата','Выручка','К выплате','Комиссия','Логистика','Штрафы']}
+      rows={(data||[]).map(r=>[
+        r.date,
+        <span className="num">{fmt.rub(r.revenue)}</span>,
+        <span className="num font-bold" style={{color:'var(--success)'}}>{fmt.rub(r.to_pay)}</span>,
+        <span className="num">{fmt.rub(r.commission)}</span>,
+        <span className="num">{fmt.rub(r.logistics)}</span>,
+        <span className="num" style={{color:r.penalty>0?'var(--danger)':'inherit'}}>{fmt.rub(r.penalty)}</span>,
+      ])}/>
+  </div>;
+}
+
+function DataTable({title,count,empty,head,rows}){
+  return <div className="table-wrap">
+    <div className="table-toolbar">
+      <span className="table-title-text">{title}</span>
+      <span className="table-count">{count} записей</span>
+    </div>
+    {!rows||rows.length===0
+      ?<div className="empty"><div className="empty-icon">📭</div><div className="empty-title">{empty}</div></div>
+      :<div style={{overflowX:'auto'}}><table>
+        <thead><tr>{head.map((h,i)=><th key={i}>{h}</th>)}</tr></thead>
+        <tbody>{rows.map((row,i)=><tr key={i}>{row.map((cell,j)=><td key={j}>{cell}</td>)}</tr>)}</tbody>
+      </table></div>
+    }
+  </div>;
+}
+
+// ── Admin Cabinets ────────────────────────────────────────────────────────────
+function AdminCabinets(){
+  const [cabinets,setCabinets]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [show,setShow]=useState(false);
+  const [name,setName]=useState('');
+  const [token,setToken]=useState('');
+  const [err,setErr]=useState('');
+  const [saving,setSaving]=useState(false);
+  useEffect(()=>{ api.get('/api/admin/cabinets').then(setCabinets).finally(()=>setLoading(false)); },[]);
+  async function add(e){
+    e.preventDefault();setErr('');setSaving(true);
+    try{const c=await api.post('/api/admin/cabinets',{name,api_token:token});setCabinets(p=>[...p,c]);setName('');setToken('');setShow(false);}
+    catch(e){setErr(e.message);}finally{setSaving(false);}
+  }
+  async function del(id){
+    if(!confirm('Удалить кабинет?'))return;
+    await api.del(`/api/admin/cabinets/${id}`);setCabinets(p=>p.filter(c=>c.id!==id));
+  }
+  if(loading)return<Loader/>;
+  return <div>
+    <div className="page-header">
+      <div className="page-actions">
+        <div><div className="page-title">Кабинеты WB</div><div className="page-sub">Управление кабинетами и токенами API</div></div>
+        <button className="btn btn-primary" onClick={()=>setShow(true)}>+ Добавить кабинет</button>
+      </div>
+    </div>
+    {show&&<div className="panel anim-fade-up" style={{maxWidth:480,marginBottom:20}}>
+      <div className="panel-title">🗄 Новый кабинет</div>
+      <div className="panel-hint">Токен проверяется при добавлении. Нужен доступ хотя бы к одному из разделов WB API.</div>
+      {err&&<Alert>{err}</Alert>}
+      <form onSubmit={add}>
+        <div className="form-group"><label className="form-label">Название кабинета</label><input className="form-input" value={name} onChange={e=>setName(e.target.value)} placeholder="Мой магазин" required/></div>
+        <div className="form-group"><label className="form-label">API токен WB</label><input className="form-input" value={token} onChange={e=>setToken(e.target.value)} placeholder="eyJhbGci..." required/></div>
+        <div className="flex gap-2">
+          <button className="btn btn-primary" type="submit" disabled={saving}>{saving?'Добавление...':'Добавить'}</button>
+          <button className="btn btn-ghost" type="button" onClick={()=>{setShow(false);setErr('');}}>Отмена</button>
+        </div>
+      </form>
+    </div>}
+    {cabinets.length===0
+      ?<div className="empty"><div className="empty-icon">🗄</div><div className="empty-title">Кабинеты не добавлены</div></div>
+      :<DataTable title="Кабинеты" count={cabinets.length} empty="" head={['#','Название','Добавлен','']}
+          rows={cabinets.map(c=>[<span className="text-muted">{c.id}</span>,<span className="font-bold">{c.name}</span>,<span className="text-muted">{fmt.date(c.created_at)}</span>,<button className="btn btn-danger btn-sm" onClick={()=>del(c.id)}>Удалить</button>])}/>
+    }
+  </div>;
+}
+
+// ── Admin Users ───────────────────────────────────────────────────────────────
+function AdminUsers(){
+  const [users,setUsers]=useState([]);
+  const [cabinets,setCabinets]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showCreate,setShowCreate]=useState(false);
+  const [permUser,setPermUser]=useState(null);
+  const [login,setLogin]=useState('');
+  const [password,setPassword]=useState('');
+  const [isAdmin,setIsAdmin]=useState(false);
+  const [err,setErr]=useState('');
+  const [saving,setSaving]=useState(false);
+  useEffect(()=>{ Promise.all([api.get('/api/admin/users'),api.get('/api/admin/cabinets')]).then(([u,c])=>{setUsers(u);setCabinets(c);}).finally(()=>setLoading(false)); },[]);
+  async function create(e){
+    e.preventDefault();setErr('');setSaving(true);
+    try{const u=await api.post('/api/admin/users',{login,password,is_admin:isAdmin});setUsers(p=>[...p,u]);setLogin('');setPassword('');setIsAdmin(false);setShowCreate(false);}
+    catch(e){setErr(e.message);}finally{setSaving(false);}
+  }
+  async function toggle(id){const u=await api.patch(`/api/admin/users/${id}/active`);setUsers(p=>p.map(x=>x.id===id?{...x,...u}:x));}
+  async function del(id){if(!confirm('Удалить?'))return;await api.del(`/api/admin/users/${id}`);setUsers(p=>p.filter(u=>u.id!==id));}
+  if(loading)return<Loader/>;
+  return <div>
+    <div className="page-header">
+      <div className="page-actions">
+        <div><div className="page-title">Пользователи</div><div className="page-sub">Управление доступами к кабинетам</div></div>
+        <button className="btn btn-primary" onClick={()=>setShowCreate(true)}>+ Добавить пользователя</button>
+      </div>
+    </div>
+    {showCreate&&<Modal title="Новый пользователь" onClose={()=>{setShowCreate(false);setErr('');}}>
+      {err&&<Alert>{err}</Alert>}
+      <form onSubmit={create}>
+        <div className="form-group"><label className="form-label">Логин</label><input className="form-input" value={login} onChange={e=>setLogin(e.target.value)} placeholder="user123" required/></div>
+        <div className="form-group"><label className="form-label">Пароль (мин. 8 символов)</label><input className="form-input" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" required/></div>
+        <div className="toggle-wrap"><input type="checkbox" id="ia" checked={isAdmin} onChange={e=>setIsAdmin(e.target.checked)}/><label htmlFor="ia" className="toggle-label">Администратор</label></div>
+        <div className="modal-footer">
+          <button className="btn btn-ghost" type="button" onClick={()=>setShowCreate(false)}>Отмена</button>
+          <button className="btn btn-primary" type="submit" disabled={saving}>{saving?'Создание...':'Создать'}</button>
+        </div>
+      </form>
+    </Modal>}
+    {permUser&&<PermModal user={permUser} cabinets={cabinets} onClose={()=>setPermUser(null)}/>}
+    <DataTable title="Пользователи" count={users.length} empty="Нет пользователей"
+      head={['#','Логин','Роль','Статус','Создан','Действия']}
+      rows={users.map(u=>[
+        <span className="text-muted">{u.id}</span>,
+        <span className="font-bold">{u.login}</span>,
+        u.is_admin?<span className="badge badge-purple">Админ</span>:<span className="badge badge-grey">Просмотр</span>,
+        u.is_active?<span className="badge badge-green"><span className="dot"/>Активен</span>:<span className="badge badge-red"><span className="dot"/>Откл.</span>,
+        <span className="text-muted">{fmt.date(u.created_at)}</span>,
+        <div className="flex gap-2">
+          <button className="btn btn-ghost btn-sm" onClick={()=>setPermUser(u)}>Доступы</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>toggle(u.id)}>{u.is_active?'Откл.':'Вкл.'}</button>
+          <button className="btn btn-danger btn-sm" onClick={()=>del(u.id)}>✕</button>
+        </div>
+      ])}/>
+  </div>;
+}
+
+function PermModal({user,cabinets,onClose}){
+  const [perms,setPerms]=useState({});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [err,setErr]=useState('');
+  useEffect(()=>{
+    api.get(`/api/admin/users/${user.id}/permissions`).then(data=>{
+      const m={};data.forEach(p=>{m[p.cabinet_id]={orders:!!p.can_view_orders,stock:!!p.can_view_stock,ads:!!p.can_view_ads,finances:!!p.can_view_finances};});
+      setPerms(m);
+    }).finally(()=>setLoading(false));
+  },[user.id]);
+  function tog(cid,f){setPerms(p=>({...p,[cid]:{...(p[cid]||{}),[f]:!(p[cid]?.[f])}}));}
+  async function save(){
+    setSaving(true);setErr('');
+    try{
+      await api.put(`/api/admin/users/${user.id}/permissions`,{permissions:cabinets.map(c=>({cabinet_id:c.id,can_view_orders:!!(perms[c.id]?.orders),can_view_stock:!!(perms[c.id]?.stock),can_view_ads:!!(perms[c.id]?.ads),can_view_finances:!!(perms[c.id]?.finances)}))});
+      onClose();
+    }catch(e){setErr(e.message);}finally{setSaving(false);}
+  }
+  return <Modal title={`Доступы: ${user.login}`} onClose={onClose}
+    footer={<><button className="btn btn-ghost" onClick={onClose}>Отмена</button><button className="btn btn-primary" onClick={save} disabled={saving}>{saving?'Сохранение...':'Сохранить'}</button></>}>
+    {err&&<Alert>{err}</Alert>}
+    {loading?<Loader/>:cabinets.length===0?<div className="empty"><div className="empty-title">Нет кабинетов</div></div>:
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {cabinets.map(c=>(
+          <div key={c.id} style={{background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',padding:'12px 14px'}}>
+            <div style={{fontWeight:700,marginBottom:10,color:'var(--text)',fontSize:13}}>{c.name}</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              {[['orders','📦 Заказы'],['stock','🏭 Остатки'],['ads','📣 Реклама'],['finances','💰 Финансы']].map(([f,l])=>(
+                <label key={f} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--text2)'}}>
+                  <input type="checkbox" style={{accentColor:'var(--accent)'}} checked={!!(perms[c.id]?.[f])} onChange={()=>tog(c.id,f)}/>{l}
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    }
+  </Modal>;
+}
+
+// ── App ───────────────────────────────────────────────────────────────────────
+function App(){
+  const [auth,setAuth]=useState(()=>{
+    const t=localStorage.getItem('token');
+    if(!t)return null;
+    try{
+      const p=JSON.parse(atob(t.split('.')[1]));
+      if(p.exp*1000<Date.now()){localStorage.removeItem('token');return null;}
+      return{token:t,is_admin:p.admin,login:p.sub};
+    }catch{localStorage.removeItem('token');return null;}
+  });
+  const [page,setPage]=useState('dashboard');
+  const [cab,setCab]=useState(null);
+
+  function logout(){localStorage.removeItem('token');setAuth(null);}
+  function openCabinet(c){setCab(c);setPage('cabinet');}
+  function back(){setCab(null);setPage('dashboard');}
+  function navigate(p){setPage(p);setCab(null);}
+
+  if(!auth)return<LoginPage onLogin={d=>setAuth(d)}/>;
+
+  const crumbs = page==='dashboard'?['WB Dashboard','Обзор']
+    :page==='cabinet'&&cab?['WB Dashboard','Обзор',cab.name]
+    :page==='admin-cabinets'?['WB Dashboard','Кабинеты WB']
+    :page==='admin-users'?['WB Dashboard','Пользователи']
+    :['WB Dashboard'];
+
+  return <div className="layout">
+    <Sidebar page={page} setPage={navigate} isAdmin={auth.is_admin} user={auth} onLogout={logout} cabinetName={cab?.name}/>
+    <div className="main-area">
+      <Topbar crumbs={crumbs} isAdmin={auth.is_admin}/>
+      <div className="main-content">
+        {page==='cabinet'&&cab?<CabinetDetail cabinet={cab} onBack={back}/>
+        :page==='admin-cabinets'?<AdminCabinets/>
+        :page==='admin-users'?<AdminUsers/>
+        :<Dashboard onOpenCabinet={openCabinet}/>}
+      </div>
+    </div>
+  </div>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
