@@ -759,7 +759,12 @@ async def admin_debug(cabinet_id: int, section: str = "ads", st: int = 0, admin:
             data = await wb_client._post(token, wb_client._BASE_FINANCE, "/api/finance/v1/sales-reports/list", {
                 "dateFrom": week_ago, "dateTo": today
             })
-            return {"raw": data}
+            rows = data if isinstance(data, list) else []
+            return {
+                "count": len(rows),
+                "raw_sample": rows[:3],
+                "all_keys": list(rows[0].keys()) if rows else [],
+            }
         elif section == "orders":
             data = await wb_client._get(token, wb_client._BASE_STATISTICS, "/api/v1/supplier/orders", {
                 "dateFrom": week_ago, "flag": 0
