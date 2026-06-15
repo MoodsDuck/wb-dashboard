@@ -647,24 +647,50 @@ async def admin_debug(cabinet_id: int, section: str = "ads", admin: dict = Depen
             data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
             return {"raw": data}
         elif section == "ads_stats":
+            # Use real campaign IDs from count endpoint
+            count = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v1/promotion/count")
+            ids = []
+            for g in (count.get("adverts") or [] if isinstance(count, dict) else []):
+                if g.get("status") in (7, 9, 11):
+                    for a in (g.get("advert_list") or []):
+                        if a.get("advertId"):
+                            ids.append(a["advertId"])
+            if not ids:
+                return {"error": "no campaign ids found", "count_raw": count}
             data = await wb_client._get(token, wb_client._BASE_ADVERT, "/adv/v3/fullstats", {
-                "ids": "0", "beginDate": week_ago, "endDate": today
+                "ids": ",".join(str(x) for x in ids[:5]),
+                "beginDate": week_ago, "endDate": today
             })
-            return {"raw": data}
+            return {"ids_tested": ids[:5], "raw": data}
         elif section == "stocks":
-            # Step 1: create task on seller-analytics-api
-            data = await wb_client._get(token, wb_client._BASE_SELLER_ANALYTICS,
-                                        "/api/v1/warehouse_remains",
-                                        {"groupBySize": "true", "groupByBarcode": "true"})
-            task_id = data.get("data", {}).get("taskId") if isinstance(data, dict) else None
-            if not task_id:
-                return {"step": "create_task", "raw": data, "error": "no taskId"}
-            # Step 2: check status once (don't wait full 120s in debug)
+            # Full flow: create → poll → download
             import asyncio
-            await asyncio.sleep(5)
-            status_resp = await wb_client._get(token, wb_client._BASE_SELLER_ANALYTICS,
-                                               f"/api/v1/warehouse_remains/tasks/{task_id}/status", {})
-            return {"step": "status_check", "task_id": task_id, "status_raw": status_resp}
+            create_resp = await wb_client._get(token, wb_client._BASE_SELLER_ANALYTICS,
+                                               "/api/v1/warehouse_remains",
+                                               {"groupBySize": "true", "groupByBarcode": "true"})
+            task_id = (create_resp.get("data", {}).get("taskId") if isinstance(create_resp, dict) else None)
+            if not task_id:
+                return {"step": "create_task", "raw": create_resp, "error": "no taskId in data"}
+            status = None
+            for _ in range(12):
+                await asyncio.sleep(5)
+                sr = await wb_client._get(token, wb_client._BASE_SELLER_ANALYTICS,
+                                          f"/api/v1/warehouse_remains/tasks/{task_id}/status", {})
+                status = sr.get("data", {}).get("status") if isinstance(sr, dict) else None
+                if status in ("done", "complete", "completed", "success"):
+                    break
+            if status not in ("done", "complete", "completed", "success"):
+                return {"step": "poll_timeout", "task_id": task_id, "last_status": status}
+            dl = await wb_client._get(token, wb_client._BASE_SELLER_ANALYTICS,
+                                      f"/api/v1/warehouse_remains/tasks/{task_id}/download", {})
+            items = dl if isinstance(dl, list) else []
+            return {
+                "step": "download", "task_id": task_id, "status": status,
+                "total_items": len(items),
+                "sample": items[:2] if items else [],
+                "raw_type": type(dl).__name__,
+                "raw_if_not_list": dl if not isinstance(dl, list) else None,
+            }
         elif section == "finance":
             data = await wb_client._post(token, wb_client._BASE_FINANCE, "/api/finance/v1/sales-reports/list", {
                 "dateFrom": week_ago, "dateTo": today
