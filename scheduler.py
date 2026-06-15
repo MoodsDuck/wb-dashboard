@@ -247,10 +247,11 @@ async def sync_all_cabinets() -> None:
         await db.close()
 
     for cabinet in cabinets:
-        await _fetch_orders(cabinet)
-        await _fetch_stocks(cabinet)
-        await _fetch_ads(cabinet)
-        await _fetch_finances(cabinet)
+        for fn in (_fetch_orders, _fetch_stocks, _fetch_ads, _fetch_finances):
+            try:
+                await fn(cabinet)
+            except Exception as e:
+                logger.error("[cabinet %d] %s failed: %s", cabinet["id"], fn.__name__, e)
 
 
 def start_scheduler() -> AsyncIOScheduler:

@@ -40,6 +40,8 @@ async def _get(token: str, base: str, path: str, params: dict | None = None) -> 
             continue
         if r.status_code >= 400:
             raise WBApiError(r.status_code, r.text[:300])
+        if not r.content:
+            return []
         return r.json()
     raise WBApiError(429, "Rate limit: max retries exceeded")
 
@@ -56,6 +58,8 @@ async def _post(token: str, base: str, path: str, body: dict | list) -> dict | l
             continue
         if r.status_code >= 400:
             raise WBApiError(r.status_code, r.text[:300])
+        if not r.content:
+            return []
         return r.json()
     raise WBApiError(429, "Rate limit: max retries exceeded")
 
