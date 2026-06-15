@@ -236,19 +236,38 @@ async def _fetch_finances(cabinet: dict) -> None:
             "DELETE FROM finance_report WHERE cabinet_id=? AND date>=? AND date<=?",
             (cabinet_id, date_from, date_to)
         )
+        # WB sometimes returns multiple records per week (different reportType).
+        # Aggregate by dateFrom to avoid smaller records overwriting larger ones.
+        from collections import defaultdict
+        grouped: dict = defaultdict(lambda: {
+            'date_to': '', 'revenue': 0.0, 'logistics': 0.0, 'penalty': 0.0,
+            'storage': 0.0, 'returns': 0.0, 'other': 0.0, 'to_pay': 0.0
+        })
         for row in weekly:
             date = (row.get("dateFrom") or "")[:10]
-            date_to_w = (row.get("dateTo") or "")[:10]
             if not date:
                 continue
-            revenue = float(row.get("retailAmountSum") or 0)
-            logistics = float(row.get("deliveryServiceSum") or 0)
-            penalty = float(row.get("penaltySum") or 0)
-            storage = float(row.get("storageSum") or 0)
-            returns = float(row.get("returnSum") or 0)
-            other = float(row.get("deductionSum") or 0)
-            to_pay = float(row.get("forPaySum") or 0)
-            # Commission = WB fee = revenue minus all known deductions minus payout
+            g = grouped[date]
+            g['date_to'] = (row.get("dateTo") or "")[:10]
+            g['revenue']   += float(row.get("retailAmountSum") or 0)
+            g['logistics'] += float(row.get("deliveryServiceSum") or 0)
+            g['penalty']   += float(row.get("penaltySum") or 0)
+            g['storage']   += float(row.get("paidStorageSum") or 0)
+            g['returns']   += float(row.get("returnSum") or 0)
+            # deductionSum = WB commission + cashback + other WB deductions
+            g['other']     += float(row.get("deductionSum") or 0)
+            g['other']     += float(row.get("cashbackDiscountSum") or 0)
+            g['other']     += float(row.get("paidAcceptanceSum") or 0)
+            g['to_pay']    += float(row.get("forPaySum") or 0)
+
+        for date, g in grouped.items():
+            revenue   = g['revenue']
+            logistics = g['logistics']
+            penalty   = g['penalty']
+            storage   = g['storage']
+            returns   = g['returns']
+            other     = g['other']
+            to_pay    = g['to_pay']
             commission = max(0.0, revenue - to_pay - logistics - penalty - storage - returns - other)
             await db.execute("""
                 INSERT INTO finance_report
@@ -261,7 +280,7 @@ async def _fetch_finances(cabinet: dict) -> None:
                     penalty=excluded.penalty, to_pay=excluded.to_pay,
                     storage=excluded.storage, returns=excluded.returns,
                     other_deductions=excluded.other_deductions
-            """, (cabinet_id, date, date_to_w, revenue, commission,
+            """, (cabinet_id, date, g['date_to'], revenue, commission,
                   logistics, penalty, to_pay, storage, returns, other))
         await db.commit()
         logger.info("[cabinet %d] finances synced: %d weekly reports", cabinet_id, len(weekly))
