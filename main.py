@@ -626,7 +626,7 @@ async def admin_force_sync(admin: dict = Depends(auth.require_admin)):
 
 
 @app.get("/api/admin/debug/{cabinet_id}")
-async def admin_debug(cabinet_id: int, section: str = "ads", admin: dict = Depends(auth.require_admin)):
+async def admin_debug(cabinet_id: int, section: str = "ads", st: int = 0, admin: dict = Depends(auth.require_admin)):
     """Debug: directly call WB API and return raw response for diagnosis."""
     db = await get_db()
     try:
@@ -645,7 +645,7 @@ async def admin_debug(cabinet_id: int, section: str = "ads", admin: dict = Depen
     try:
         if section == "stocks_fbs":
             base = "https://seller-analytics-api.wildberries.ru"
-            stock_type = int(request.query_params.get("st", 0))
+            stock_type = st
             body = {
                 "currentPeriod": {"start": today, "end": today},
                 "stockType": stock_type,
