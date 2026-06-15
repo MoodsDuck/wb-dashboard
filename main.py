@@ -756,14 +756,28 @@ async def admin_debug(cabinet_id: int, section: str = "ads", st: int = 0, admin:
                 "raw_if_not_list": dl if not isinstance(dl, list) else None,
             }
         elif section == "finance":
+            ninety_ago = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
             data = await wb_client._post(token, wb_client._BASE_FINANCE, "/api/finance/v1/sales-reports/list", {
-                "dateFrom": week_ago, "dateTo": today
+                "dateFrom": ninety_ago, "dateTo": today
             })
             rows = data if isinstance(data, list) else []
             return {
                 "count": len(rows),
-                "raw_sample": rows[:3],
+                "date_from": ninety_ago,
+                "date_to": today,
+                "raw_sample": rows[:5],
                 "all_keys": list(rows[0].keys()) if rows else [],
+                "all_rows_summary": [
+                    {
+                        "dateFrom": r.get("dateFrom"),
+                        "dateTo": r.get("dateTo"),
+                        "retailAmountSum": r.get("retailAmountSum"),
+                        "forPaySum": r.get("forPaySum"),
+                        "deliveryServiceSum": r.get("deliveryServiceSum"),
+                        "penaltySum": r.get("penaltySum"),
+                    }
+                    for r in rows
+                ],
             }
         elif section == "orders":
             data = await wb_client._get(token, wb_client._BASE_STATISTICS, "/api/v1/supplier/orders", {
