@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def _fetch_orders(cabinet: dict) -> None:
     cabinet_id = cabinet["id"]
     token = cabinet["api_token"]
-    date_from = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    date_from = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
     try:
         orders = await wb_client.get_orders(token, date_from)
     except wb_client.WBApiError as e:
@@ -26,17 +26,19 @@ async def _fetch_orders(cabinet: dict) -> None:
     db = await get_db()
     try:
         for o in orders:
-            order_id = str(o.get("id", ""))
-            created = o.get("createdAt", "")[:10] if o.get("createdAt") else ""
+            # Statistics API fields: odid, date, supplierArticle, nmId, isCancel, finishedPrice, regionName
+            order_id = str(o.get("odid") or o.get("srid") or "")
+            created = (o.get("date") or "")[:10]
+            status = "cancelled" if o.get("isCancel") else "confirmed"
+            price = o.get("finishedPrice") or o.get("priceWithDisc") or 0
             await db.execute("""
                 INSERT OR IGNORE INTO orders_cache
                     (cabinet_id, order_id, date, article, nm_id, status, price, region)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 cabinet_id, order_id, created,
-                o.get("article"), o.get("nmId"),
-                o.get("wbStatus") or o.get("status"),
-                o.get("convertedPrice", 0) / 100 if o.get("convertedPrice") else 0,
+                o.get("supplierArticle"), o.get("nmId"),
+                status, price,
                 o.get("regionName"),
             ))
         await db.commit()

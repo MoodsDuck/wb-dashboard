@@ -66,39 +66,27 @@ async def _post(token: str, base: str, path: str, body: dict | list) -> dict | l
 async def validate_token(token: str) -> bool:
     """Returns True if token can reach WB API. False only on 401/403."""
     from datetime import datetime, timedelta, timezone
-    date_from = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    date_from = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
     try:
-        await _get(token, _BASE_MARKETPLACE, "/api/v3/orders", {"dateFrom": date_from, "limit": 1})
+        await _get(token, _BASE_STATISTICS, "/api/v1/supplier/orders", {"dateFrom": date_from, "flag": 0})
         return True
     except WBApiError as e:
         if e.status in (401, 403):
             return False
-        # 429, 5xx, etc — token is alive but rate-limited or WB is down
         return True
     except Exception:
         return False
 
 
-# ── Orders (with cursor pagination) ──────────────────────────────────────────
+# ── Orders (statistics API — full history) ────────────────────────────────────
 
 async def get_orders(token: str, date_from: str) -> list[dict]:
-    """Returns all orders since date_from using cursor pagination."""
-    all_orders: list[dict] = []
-    params: dict = {"dateFrom": date_from, "limit": 1000}
-    while True:
-        try:
-            data = await _get(token, _BASE_MARKETPLACE, "/api/v3/orders", params)
-        except WBApiError:
-            break
-        if not isinstance(data, dict):
-            break
-        batch = data.get("orders") or []
-        all_orders.extend(batch)
-        cursor = data.get("next")
-        if not cursor or len(batch) < 1000:
-            break
-        params["next"] = cursor
-    return all_orders
+    """Returns all orders since date_from using statistics API (flag=1 = by creation date)."""
+    data = await _get(token, _BASE_STATISTICS, "/api/v1/supplier/orders", {
+        "dateFrom": date_from,
+        "flag": 1,
+    })
+    return data if isinstance(data, list) else []
 
 
 # ── Stocks ────────────────────────────────────────────────────────────────────
