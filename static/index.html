@@ -11,34 +11,41 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     :root{
-      --bg:#07080c;
-      --surface:#0d0f18;
-      --surface2:#131620;
-      --surface3:#1a1d2e;
-      --border:rgba(255,255,255,0.055);
-      --border2:rgba(255,255,255,0.10);
-      --accent:#6366f1;
-      --accent2:#818cf8;
-      --accent3:#a5b4fc;
-      --glow:rgba(99,102,241,0.25);
-      --glow2:rgba(99,102,241,0.08);
-      --purple:#a855f7;
-      --pink:#ec4899;
-      --cyan:#06b6d4;
-      --text:#f0f1f8;
-      --text2:#8b92a8;
-      --text3:#454d65;
-      --success:#10d9a0;
-      --success-bg:rgba(16,217,160,0.09);
+      --bg:#0e1117;
+      --surface:#161b27;
+      --surface2:#1c2235;
+      --surface3:#222a3f;
+      --border:rgba(148,163,210,0.08);
+      --border2:rgba(148,163,210,0.14);
+      --accent:#5b6af0;
+      --accent2:#7b8cf8;
+      --accent3:#a8b4fc;
+      --glow:rgba(91,106,240,0.28);
+      --glow2:rgba(91,106,240,0.09);
+      --purple:#9b59f7;
+      --pink:#e84d9e;
+      --cyan:#22d3ee;
+      --text:#e8eaf6;
+      --text2:#8892b0;
+      --text3:#4a5270;
+      --success:#0fd9a0;
+      --success-bg:rgba(15,217,160,0.10);
       --warning:#f5a623;
-      --warning-bg:rgba(245,166,35,0.09);
-      --danger:#f43f5e;
-      --danger-bg:rgba(244,63,94,0.09);
-      --r:10px;--r-sm:6px;--r-lg:14px;
+      --warning-bg:rgba(245,166,35,0.10);
+      --danger:#f14668;
+      --danger-bg:rgba(241,70,104,0.10);
+      --r:10px;--r-sm:7px;--r-lg:14px;
       --sw:240px;
     }
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:
+        radial-gradient(ellipse 80% 50% at 70% -10%, rgba(91,106,240,.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at -5% 60%, rgba(155,89,247,.09) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 30% at 100% 90%, rgba(34,211,238,.07) 0%, transparent 50%);
+    }
+    .layout,.login-page,.main-area,.sidebar{position:relative;z-index:1}
     ::-webkit-scrollbar{width:3px;height:3px}
     ::-webkit-scrollbar-track{background:transparent}
     ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
@@ -66,12 +73,11 @@
     /* ── Sidebar ── */
     .sidebar{
       position:fixed;top:0;left:0;bottom:0;width:var(--sw);
-      background:var(--surface);
+      background:linear-gradient(180deg,#131929 0%,#111724 100%);
       border-right:1px solid var(--border);
       display:flex;flex-direction:column;z-index:100;
     }
-    /* Subtle top gradient line */
-    .sidebar::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),var(--purple),transparent);opacity:.6}
+    .sidebar::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),var(--purple),transparent);opacity:.7}
 
     .sidebar-brand{padding:20px 16px 16px;position:relative}
     .brand-wrap{display:flex;align-items:center;gap:12px}
@@ -146,7 +152,7 @@
     .topbar{
       height:56px;display:flex;align-items:center;justify-content:space-between;
       padding:0 32px;border-bottom:1px solid var(--border);
-      background:var(--surface);backdrop-filter:blur(8px);
+      background:rgba(18,22,38,.85);backdrop-filter:blur(12px);
       position:sticky;top:0;z-index:50;
     }
     .topbar-left{display:flex;align-items:center;gap:8px}
