@@ -196,8 +196,13 @@ async def get_ad_campaigns(token: str) -> list[dict]:
             })
             adverts_list = data if isinstance(data, list) else (data.get("adverts") or [] if isinstance(data, dict) else [])
             for adv in adverts_list:
-                if isinstance(adv, dict) and adv.get("advertId"):
-                    name_map[adv["advertId"]] = adv.get("name", "")
+                if not isinstance(adv, dict):
+                    continue
+                # /api/advert/v2/adverts uses "id" (not "advertId"), name in settings.name
+                cid = adv.get("id") or adv.get("advertId")
+                name = (adv.get("settings") or {}).get("name") or adv.get("name") or ""
+                if cid:
+                    name_map[cid] = name
         except WBApiError:
             pass
     for c in campaigns:

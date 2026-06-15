@@ -153,7 +153,8 @@ async def _fetch_ads(cabinet: dict) -> None:
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         ON CONFLICT(cabinet_id, date, campaign_id) DO UPDATE SET
                             spend=excluded.spend, views=excluded.views,
-                            clicks=excluded.clicks, orders=excluded.orders
+                            clicks=excluded.clicks, orders=excluded.orders,
+                            campaign_name=excluded.campaign_name
                     """, (
                         cabinet_id, date, cid, campaign_names.get(cid),
                         day.get("sum", 0), day.get("views", 0),
