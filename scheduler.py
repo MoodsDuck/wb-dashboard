@@ -249,7 +249,15 @@ async def _fetch_finances(cabinet: dict) -> None:
     date_to = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     date_from = (datetime.now(timezone.utc) - timedelta(days=90)).strftime("%Y-%m-%d")
 
-    weekly = await wb_client.get_finance_weekly(token, date_from, date_to)
+    try:
+        weekly = await wb_client.get_finance_weekly(token, date_from, date_to)
+    except Exception as e:
+        logger.error("[cabinet %d] finance weekly fetch failed: %s", cabinet_id, e)
+        return
+    logger.info("[cabinet %d] finance weekly fetched: %d reports for %s..%s",
+                cabinet_id, len(weekly), date_from, date_to)
+    if not weekly:
+        return
 
     db = await get_db()
     try:

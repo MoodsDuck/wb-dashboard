@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 _BASE_STATISTICS        = "https://statistics-api.wildberries.ru"
 _BASE_SELLER_ANALYTICS  = "https://seller-analytics-api.wildberries.ru"
-_BASE_FINANCE           = "https://finance-api.wildberries.ru"
 _BASE_ADVERT            = "https://advert-api.wildberries.ru"
 _BASE_MARKETPLACE       = "https://marketplace-api.wildberries.ru"
 
@@ -297,18 +296,85 @@ async def get_ad_stats(token: str, campaign_ids: list[int], date_from: str, date
 
 async def get_finance_weekly(token: str, date_from: str, date_to: str) -> list[dict]:
     """
-    Weekly summary reports via new finance API.
-    Returns list of {reportId, dateFrom, dateTo, retailAmountSum, forPaySum, ...}.
+    Weekly summary built by aggregating /api/v5/supplier/reportDetailByPeriod rows
+    per realizationreport_id (one report = one week).
+    Returns list of {reportId, dateFrom, dateTo, retailAmountSum, forPaySum, ...}
+    matching the field names the scheduler already expects.
     """
     try:
-        data = await _post(token, _BASE_FINANCE, "/api/finance/v1/sales-reports/list", {
-            "dateFrom": date_from,
-            "dateTo": date_to,
-        })
-        return data if isinstance(data, list) else []
+        rows = await get_finance_detail(token, date_from, date_to)
     except WBApiError as e:
         logger.warning("finance weekly API error: %s", e)
         return []
+
+    from collections import defaultdict
+    by_report: dict = defaultdict(lambda: {
+        "reportId": None,
+        "dateFrom": "",
+        "dateTo": "",
+        "retailAmountSum": 0.0,   # net retail (sales − returns)
+        "forPaySum": 0.0,
+        "deliveryServiceSum": 0.0,
+        "penaltySum": 0.0,
+        "paidStorageSum": 0.0,
+        "returnSum": 0.0,
+        "deductionSum": 0.0,
+        "cashbackDiscountSum": 0.0,
+        "paidAcceptanceSum": 0.0,
+    })
+
+    for r in rows:
+        rid = r.get("realizationreport_id")
+        if not rid:
+            continue
+        agg = by_report[rid]
+        agg["reportId"] = rid
+        # date_from/date_to are the same for every row in a report.
+        if r.get("date_from"):
+            agg["dateFrom"] = (r["date_from"] or "")[:10]
+        if r.get("date_to"):
+            agg["dateTo"] = (r["date_to"] or "")[:10]
+
+        oper = (r.get("supplier_oper_name") or "").lower()
+        amount = float(r.get("retail_price_withdisc_rub") or 0)
+        if "возврат" in oper:
+            agg["returnSum"] += amount
+            agg["retailAmountSum"] -= amount
+        elif "продаж" in oper or "реализ" in oper:
+            agg["retailAmountSum"] += amount
+
+        agg["forPaySum"]          += float(r.get("ppvz_for_pay") or 0)
+        agg["deliveryServiceSum"] += float(r.get("delivery_rub") or 0)
+        agg["penaltySum"]         += float(r.get("penalty") or 0)
+        agg["paidStorageSum"]     += float(r.get("storage_fee") or 0)
+        agg["deductionSum"]       += float(r.get("deduction") or 0)
+        agg["paidAcceptanceSum"]  += float(r.get("acceptance") or 0)
+
+    return list(by_report.values())
+
+
+async def get_finance_detail(token: str, date_from: str, date_to: str) -> list[dict]:
+    """Raw detail rows from /api/v5/supplier/reportDetailByPeriod, paginated via rrdid."""
+    all_rows: list[dict] = []
+    last_rrdid = 0
+    while True:
+        data = await _get(token, _BASE_STATISTICS, "/api/v5/supplier/reportDetailByPeriod", {
+            "dateFrom": date_from,
+            "dateTo": date_to,
+            "rrdid": last_rrdid,
+            "limit": 100000,
+        })
+        batch = data if isinstance(data, list) else []
+        if not batch:
+            break
+        all_rows.extend(batch)
+        if len(batch) < 100000:
+            break
+        new_rrdid = batch[-1].get("rrd_id") or 0
+        if not new_rrdid or new_rrdid == last_rrdid:
+            break
+        last_rrdid = new_rrdid
+    return all_rows
 
 
 async def get_finance_daily(token: str, date_from: str, date_to: str) -> list[dict]:
