@@ -265,10 +265,12 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
 
         from datetime import datetime, timedelta, timezone
         since = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
+        # Use actual paid sales for the run-rate; cancelled/return orders inflate it.
         cur2 = await db.execute("""
             SELECT nm_id, COUNT(*) as cnt
             FROM orders_cache
             WHERE cabinet_id=? AND date>=?
+              AND status NOT IN ('cancel','return')
             GROUP BY nm_id
         """, (cabinet_id, since))
         sales = {r["nm_id"]: r["cnt"] / 7 for r in await cur2.fetchall()}
@@ -416,7 +418,8 @@ async def get_products_report(cabinet_id: int, date_from: str = "", date_to: str
             date_sql += " AND date<=?"
             params.append(date_to)
 
-        # Daily sales per (article, nm_id, barcode, size)
+        # Daily sales per (article, nm_id, barcode, size).
+        # Exclude cancelled/return — they corrupt revenue and sales counts.
         cur = await db.execute(f"""
             SELECT article, nm_id, barcode, size, subject,
                    date, COUNT(*) as cnt,
@@ -424,6 +427,7 @@ async def get_products_report(cabinet_id: int, date_from: str = "", date_to: str
                    AVG(discount_percent) as avg_disc
             FROM orders_cache
             WHERE cabinet_id=? {date_sql}
+              AND status NOT IN ('cancel','return')
             GROUP BY article, nm_id, barcode, size, date
             ORDER BY article, size, date
         """, params)

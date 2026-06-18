@@ -90,25 +90,37 @@ async def get_orders(token: str, date_from: str) -> list[dict]:
     flag=0: returns rows where lastChangeDate >= dateFrom (up to 80 000 per call).
     Paginates via lastChangeDate of last row until empty response.
     """
-    all_orders: list[dict] = []
+    return await _paginate_statistics(token, "/api/v1/supplier/orders", date_from)
+
+
+async def get_sales(token: str, date_from: str) -> list[dict]:
+    """
+    Returns paid sales (выкупы) since date_from from /api/v1/supplier/sales.
+    Used to mark orders as actually purchased — orders endpoint alone cannot
+    distinguish "ordered" from "purchased".
+    """
+    return await _paginate_statistics(token, "/api/v1/supplier/sales", date_from)
+
+
+async def _paginate_statistics(token: str, path: str, date_from: str) -> list[dict]:
+    all_rows: list[dict] = []
     current_from = date_from
     while True:
-        data = await _get(token, _BASE_STATISTICS, "/api/v1/supplier/orders", {
+        data = await _get(token, _BASE_STATISTICS, path, {
             "dateFrom": current_from,
             "flag": 0,
         })
         batch = data if isinstance(data, list) else []
         if not batch:
             break
-        all_orders.extend(batch)
+        all_rows.extend(batch)
         if len(batch) < 80000:
             break
-        # Paginate: use lastChangeDate of last row as next dateFrom
         last_change = batch[-1].get("lastChangeDate", "")
         if not last_change or last_change == current_from:
             break
         current_from = last_change
-    return all_orders
+    return all_rows
 
 
 # ── Stocks (async task API — replaces deprecated /api/v1/supplier/stocks) ─────

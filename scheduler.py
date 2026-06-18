@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 async def _fetch_orders(cabinet: dict) -> None:
     cabinet_id = cabinet["id"]
     token = cabinet["api_token"]
-    # flag=0: all orders where lastChangeDate >= dateFrom
+    # flag=0: all rows where lastChangeDate >= dateFrom
     date_from = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
     try:
         orders = await wb_client.get_orders(token, date_from)
@@ -24,30 +24,51 @@ async def _fetch_orders(cabinet: dict) -> None:
         logger.error("[cabinet %d] orders error: %s", cabinet_id, e)
         return
 
+    try:
+        sales = await wb_client.get_sales(token, date_from)
+    except wb_client.WBApiError as e:
+        logger.warning("[cabinet %d] sales error: %s", cabinet_id, e)
+        sales = []
+
+    # Map srid -> 'sale' / 'return' / 'cancel'
+    sale_status: dict[str, str] = {}
+    for s in sales:
+        srid = str(s.get("srid") or s.get("gNumber") or "")
+        if not srid:
+            continue
+        # /sales returns both purchases and returns: saleID prefix S = sale, R = return
+        sale_id = s.get("saleID") or ""
+        if sale_id.startswith("R"):
+            sale_status[srid] = "return"
+        else:
+            sale_status[srid] = "sale"
+
     db = await get_db()
     try:
         for o in orders:
-            # Statistics API fields:
-            # srid = unique order identifier (recommended by WB docs)
-            # date = creation date, supplierArticle = article, nmId = product ID
-            # finishedPrice = final price, regionName = region
-            # isRealization = sold, isSupply = supply/FBO
             order_id = str(o.get("srid") or o.get("gNumber") or "")
             if not order_id:
                 continue
             created = (o.get("date") or "")[:10]
-            if o.get("isRealization"):
-                status = "sale"
-            elif o.get("isSupply"):
-                status = "supply"
+            # Status priority: paid sale > return > cancel > new
+            if order_id in sale_status:
+                status = sale_status[order_id]
+            elif o.get("isCancel") or o.get("cancelDate"):
+                status = "cancel"
             else:
                 status = "new"
             price = o.get("finishedPrice") or o.get("priceWithDisc") or 0
+            # UPSERT — re-syncs propagate status/price changes (cancellations, refunds).
             await db.execute("""
-                INSERT OR IGNORE INTO orders_cache
+                INSERT INTO orders_cache
                     (cabinet_id, order_id, date, article, nm_id, status, price, region,
                      barcode, size, subject, discount_percent)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(cabinet_id, order_id) DO UPDATE SET
+                    status=excluded.status,
+                    price=excluded.price,
+                    region=excluded.region,
+                    discount_percent=excluded.discount_percent
             """, (
                 cabinet_id, order_id, created,
                 o.get("supplierArticle"), o.get("nmId"),
@@ -58,7 +79,8 @@ async def _fetch_orders(cabinet: dict) -> None:
                 o.get("discountPercent", 0) or 0,
             ))
         await db.commit()
-        logger.info("[cabinet %d] orders synced: %d", cabinet_id, len(orders))
+        logger.info("[cabinet %d] orders synced: %d (sales=%d)",
+                    cabinet_id, len(orders), len(sales))
     finally:
         await db.close()
 
@@ -254,8 +276,8 @@ async def _fetch_finances(cabinet: dict) -> None:
             g['penalty']   += float(row.get("penaltySum") or 0)
             g['storage']   += float(row.get("paidStorageSum") or 0)
             g['returns']   += float(row.get("returnSum") or 0)
-            # deductionSum = WB commission + cashback + other WB deductions
-            g['other']     += float(row.get("deductionSum") or 0)
+            # "other" = misc deductions NOT already counted as logistics/storage/penalty/commission.
+            # deductionSum is total WB deductions and overlaps with commission, so don't sum it here.
             g['other']     += float(row.get("cashbackDiscountSum") or 0)
             g['other']     += float(row.get("paidAcceptanceSum") or 0)
             g['to_pay']    += float(row.get("forPaySum") or 0)
@@ -268,7 +290,10 @@ async def _fetch_finances(cabinet: dict) -> None:
             returns   = g['returns']
             other     = g['other']
             to_pay    = g['to_pay']
-            commission = max(0.0, revenue - to_pay - logistics - penalty - storage - returns - other)
+            # Commission = gap between gross retail and net payout, minus other known costs.
+            # Returns reduce revenue inside retailAmountSum already, so we don't subtract them.
+            commission = max(0.0,
+                revenue - to_pay - logistics - penalty - storage - other)
             await db.execute("""
                 INSERT INTO finance_report
                     (cabinet_id, date, report_type, date_to, revenue, commission,
