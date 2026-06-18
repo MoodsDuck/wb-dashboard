@@ -126,9 +126,22 @@ async def _paginate_statistics(token: str, path: str, date_from: str) -> list[di
 
 async def get_stocks(token: str) -> list[dict]:
     """
-    Creates a warehouse_remains report task, polls until done, returns results.
-    Uses seller-analytics-api (Аналитика token category).
+    FBO stocks. Primary: warehouse_remains async task (seller-analytics).
+    Falls back to the legacy /api/v1/supplier/stocks (statistics) when the
+    task API is unavailable, slow, or scope-restricted.
     """
+    rows = await _get_stocks_warehouse_remains(token)
+    if rows:
+        return rows
+    logger.info("warehouse_remains returned 0 rows — falling back to legacy /supplier/stocks")
+    return await _get_stocks_legacy(token)
+
+
+_DONE_STATUSES = {"done", "complete", "completed", "success"}
+_FAIL_STATUSES = {"purged", "canceled", "cancelled", "failed", "error"}
+
+
+async def _get_stocks_warehouse_remains(token: str) -> list[dict]:
     # Step 1: create task
     try:
         resp = await _get(token, _BASE_SELLER_ANALYTICS, "/api/v1/warehouse_remains",
@@ -140,21 +153,33 @@ async def get_stocks(token: str) -> list[dict]:
     if not task_id:
         logger.error("warehouse_remains: no taskId in response: %s", resp)
         return []
+    logger.info("warehouse_remains task %s created", task_id)
 
-    # Step 2: poll status (max 120s)
+    # Step 2: poll status — up to ~6 minutes. Transient errors don't kill the loop.
     status = None
-    for _ in range(24):
+    max_polls = 72  # 72 * 5s = 360s
+    transient_errors = 0
+    for i in range(max_polls):
         await asyncio.sleep(5)
         try:
             status_resp = await _get(token, _BASE_SELLER_ANALYTICS,
                                      f"/api/v1/warehouse_remains/tasks/{task_id}/status", {})
-        except WBApiError:
-            break
+        except WBApiError as e:
+            transient_errors += 1
+            logger.warning("warehouse_remains task %s status poll error (%d/5): %s",
+                           task_id, transient_errors, e)
+            if transient_errors >= 5:
+                logger.error("warehouse_remains task %s: too many status errors, abort", task_id)
+                return []
+            continue
         status = status_resp.get("data", {}).get("status") if isinstance(status_resp, dict) else None
-        logger.debug("warehouse_remains task %s status: %s", task_id, status)
-        if status in ("done", "complete", "completed", "success"):
+        logger.info("warehouse_remains task %s poll %d/%d: status=%s",
+                    task_id, i + 1, max_polls, status)
+        if status in _DONE_STATUSES:
             break
-        logger.debug("warehouse_remains task %s status=%s, waiting...", task_id, status)
+        if status in _FAIL_STATUSES:
+            logger.error("warehouse_remains task %s ended with status=%s", task_id, status)
+            return []
     else:
         logger.error("warehouse_remains task %s timed out (last status=%s)", task_id, status)
         return []
@@ -166,7 +191,41 @@ async def get_stocks(token: str) -> list[dict]:
     except WBApiError as e:
         logger.error("warehouse_remains download error: %s", e)
         return []
-    return data if isinstance(data, list) else []
+    rows = data if isinstance(data, list) else []
+    logger.info("warehouse_remains task %s: %d rows downloaded", task_id, len(rows))
+    return rows
+
+
+async def _get_stocks_legacy(token: str) -> list[dict]:
+    """Legacy /api/v1/supplier/stocks — flat rows keyed by warehouse + nm_id."""
+    from datetime import datetime, timedelta, timezone
+    date_from = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+    try:
+        data = await _get(token, _BASE_STATISTICS, "/api/v1/supplier/stocks",
+                          {"dateFrom": date_from})
+    except WBApiError as e:
+        logger.error("legacy /supplier/stocks error: %s", e)
+        return []
+    raw = data if isinstance(data, list) else []
+    # Reshape into the same dict the warehouse_remains downloader returns,
+    # so _fetch_stocks doesn't need to special-case it.
+    by_nm: dict = {}
+    for r in raw:
+        nm_id = r.get("nmId")
+        if nm_id is None:
+            continue
+        item = by_nm.setdefault(nm_id, {
+            "nmId": nm_id,
+            "vendorCode": r.get("supplierArticle"),
+            "subjectName": r.get("subject") or r.get("category"),
+            "warehouses": [],
+        })
+        item["warehouses"].append({
+            "warehouseName": r.get("warehouseName") or "Неизвестно",
+            "quantity": (r.get("quantity") or 0) + (r.get("quantityFull") or 0),
+        })
+    logger.info("legacy /supplier/stocks: %d items across %d rows", len(by_nm), len(raw))
+    return list(by_nm.values())
 
 
 async def get_fbs_stocks(token: str, barcodes: list[str]) -> list[dict]:
