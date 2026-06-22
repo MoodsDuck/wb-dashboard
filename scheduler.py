@@ -100,7 +100,7 @@ async def _fetch_stocks(cabinet: dict) -> None:
     db_bc = await get_db()
     try:
         cur = await db_bc.execute(
-            """SELECT DISTINCT barcode, article, nm_id, subject
+            """SELECT DISTINCT barcode, article, nm_id, subject, size
                FROM orders_cache
                WHERE cabinet_id=? AND barcode IS NOT NULL""",
             (cabinet_id,)
@@ -143,44 +143,47 @@ async def _fetch_stocks(cabinet: dict) -> None:
                 article = meta.get("article") or barcode
                 nm_id = meta.get("nm_id")
                 name = meta.get("subject") or "FBS товар"
+                size = meta.get("size")
                 await db.execute("""
                     INSERT OR IGNORE INTO stock_cache
                         (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse,
-                         barcode, warehouse_type)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbs')
-                """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name + " (FBS)", barcode))
+                         barcode, warehouse_type, size)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbs', ?)
+                """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name + " (FBS)", barcode, size))
                 continue
 
-            # warehouse_remains FBO row (groupByBarcode=true):
+            # warehouse_remains FBO row (groupByBarcode=true, groupBySize=true):
             # nmId, vendorCode (article), subjectName (name), barcode, techSize
             # warehouses: [{warehouseName, quantity, ...}]
-            nm_id = s.get("nmId")
+            nm_id = s.get("nmId") or s.get("nmID")
             article = s.get("vendorCode") or s.get("supplierArticle")
             name = s.get("subjectName") or s.get("subject") or s.get("category")
             barcode = s.get("barcode") or s.get("sku")
+            size = s.get("techSize") or s.get("size")
 
             warehouses = s.get("warehouses") or []
             if warehouses:
                 for wh in warehouses:
                     wh_name = wh.get("warehouseName") or wh.get("name") or "Неизвестно"
-                    # "Всего находится на складах" is a WB total row — skip to avoid double count
-                    if wh_name.lower().startswith("всего"):
+                    # "Всего находится на складах"/"В пути" are WB summary rows — skip
+                    wl = wh_name.lower()
+                    if wl.startswith("всего") or wl.startswith("в пути"):
                         continue
                     qty = wh.get("quantity") or wh.get("remains") or 0
                     await db.execute("""
                         INSERT OR IGNORE INTO stock_cache
                             (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse,
-                             barcode, warehouse_type)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbo')
-                    """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name, barcode))
+                             barcode, warehouse_type, size)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbo', ?)
+                    """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name, barcode, size))
             else:
                 qty = s.get("quantity") or s.get("inWayToClient") or 0
                 await db.execute("""
                     INSERT OR IGNORE INTO stock_cache
                         (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse,
-                         barcode, warehouse_type)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbo')
-                """, (cabinet_id, checked_at, nm_id, article, name, qty, "Общий FBO", barcode))
+                         barcode, warehouse_type, size)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbo', ?)
+                """, (cabinet_id, checked_at, nm_id, article, name, qty, "Общий FBO", barcode, size))
 
         await db.commit()
         logger.info("[cabinet %d] stocks synced: %d items", cabinet_id, len(stocks))

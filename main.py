@@ -113,6 +113,78 @@ async def debug_admin_status():
     }
 
 
+@app.get("/api/debug-stocks/{cabinet_id}")
+async def debug_stocks(cabinet_id: int):
+    """Temp (no auth): inspect raw WB warehouse_remains + current stock_cache.
+    Remove after debugging. Open in browser:
+    /api/debug-stocks/<cabinet_id>"""
+    db = await get_db()
+    try:
+        cur = await db.execute("SELECT api_token FROM wb_cabinets WHERE id=?", (cabinet_id,))
+        row = await cur.fetchone()
+    finally:
+        await db.close()
+    if not row:
+        return {"error": "cabinet not found"}
+    token = row["api_token"]
+
+    out: dict = {}
+
+    # 1) Current snapshot in DB
+    db = await get_db()
+    try:
+        cur = await db.execute(
+            "SELECT MAX(checked_at) AS m FROM stock_cache WHERE cabinet_id=?", (cabinet_id,))
+        latest = (await cur.fetchone())["m"]
+        out["latest_snapshot"] = latest
+        cur = await db.execute(
+            """SELECT warehouse_type, COUNT(*) AS rows, SUM(quantity) AS qty,
+                      SUM(CASE WHEN article IS NULL THEN 1 ELSE 0 END) AS null_article,
+                      SUM(CASE WHEN barcode IS NULL THEN 1 ELSE 0 END) AS null_barcode,
+                      SUM(CASE WHEN nm_id   IS NULL THEN 1 ELSE 0 END) AS null_nmid
+               FROM stock_cache WHERE cabinet_id=? AND checked_at=?
+               GROUP BY warehouse_type""", (cabinet_id, latest))
+        out["db_snapshot_summary"] = [dict(r) for r in await cur.fetchall()]
+        cur = await db.execute(
+            """SELECT nm_id, article, name, size, barcode, warehouse, warehouse_type, quantity
+               FROM stock_cache WHERE cabinet_id=? AND checked_at=?
+               ORDER BY quantity DESC LIMIT 8""", (cabinet_id, latest))
+        out["db_snapshot_sample"] = [dict(r) for r in await cur.fetchall()]
+    finally:
+        await db.close()
+
+    # 2) Raw warehouse_remains task → first rows + field names
+    try:
+        import asyncio
+        create = await wb_client._get(
+            token, wb_client._BASE_SELLER_ANALYTICS, "/api/v1/warehouse_remains",
+            {"groupBySize": "true", "groupByBarcode": "true"})
+        task_id = create.get("data", {}).get("taskId") if isinstance(create, dict) else None
+        out["warehouse_remains_taskId"] = task_id
+        if task_id:
+            status = None
+            for _ in range(36):
+                await asyncio.sleep(5)
+                sr = await wb_client._get(
+                    token, wb_client._BASE_SELLER_ANALYTICS,
+                    f"/api/v1/warehouse_remains/tasks/{task_id}/status", {})
+                status = sr.get("data", {}).get("status") if isinstance(sr, dict) else None
+                if status in ("done", "complete", "completed", "success"):
+                    break
+            out["warehouse_remains_status"] = status
+            dl = await wb_client._get(
+                token, wb_client._BASE_SELLER_ANALYTICS,
+                f"/api/v1/warehouse_remains/tasks/{task_id}/download", {})
+            items = dl if isinstance(dl, list) else []
+            out["warehouse_remains_count"] = len(items)
+            out["warehouse_remains_keys"] = sorted(items[0].keys()) if items else []
+            out["warehouse_remains_sample"] = items[:3]
+    except Exception as e:
+        out["warehouse_remains_error"] = str(e)
+
+    return out
+
+
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
@@ -251,24 +323,16 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
     await _assert_cabinet_permission(user, cabinet_id, "stock")
     db = await get_db()
     try:
-        # One row per barcode. FBO = sum across all WB warehouses,
-        # FBS = sum across all seller warehouses. Rows without a barcode
-        # fall back to grouping by nm_id+article so they don't all collapse.
+        # Flat per (article, nm_id, size, barcode) with FBO/FBS split.
         cur = await db.execute("""
             SELECT
-                COALESCE(NULLIF(s.barcode,''), 'nm:' || IFNULL(s.nm_id,'') || ':' || IFNULL(s.article,'')) AS grp,
-                MAX(s.barcode)  AS barcode,
-                MAX(s.nm_id)    AS nm_id,
-                MAX(s.article)  AS article,
-                MAX(s.name)     AS name,
+                s.article, s.nm_id, s.name, s.size, s.barcode,
                 SUM(CASE WHEN s.warehouse_type='fbs' THEN s.quantity ELSE 0 END) AS fbs,
-                SUM(CASE WHEN s.warehouse_type='fbs' THEN 0 ELSE s.quantity END) AS fbo,
-                SUM(s.quantity) AS quantity
+                SUM(CASE WHEN s.warehouse_type='fbs' THEN 0 ELSE s.quantity END) AS fbo
             FROM stock_cache s
             WHERE s.cabinet_id=?
               AND s.checked_at = (SELECT MAX(checked_at) FROM stock_cache WHERE cabinet_id=?)
-            GROUP BY grp
-            ORDER BY quantity DESC
+            GROUP BY s.article, s.nm_id, s.name, s.size, s.barcode
         """, (cabinet_id, cabinet_id))
         rows = await cur.fetchall()
 
@@ -284,23 +348,41 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
         """, (cabinet_id, since))
         sales = {r["nm_id"]: r["cnt"] / 7 for r in await cur2.fetchall()}
 
-        result = []
+        # Group into articles, each with a list of size/barcode variants.
+        arts: dict = {}
         for r in rows:
-            qty = r["quantity"] or 0
-            avg = sales.get(r["nm_id"], 0)
+            akey = r["article"] or (f"nm:{r['nm_id']}" if r["nm_id"] else "—")
+            a = arts.get(akey)
+            if a is None:
+                a = arts[akey] = {
+                    "article": r["article"], "nm_id": r["nm_id"], "name": r["name"],
+                    "fbo": 0, "fbs": 0, "variants": [],
+                }
+            fbo = r["fbo"] or 0
+            fbs = r["fbs"] or 0
+            a["fbo"] += fbo
+            a["fbs"] += fbs
+            if not a["name"]:
+                a["name"] = r["name"]
+            if not a["nm_id"]:
+                a["nm_id"] = r["nm_id"]
+            a["variants"].append({
+                "size": r["size"], "barcode": r["barcode"],
+                "fbo": fbo, "fbs": fbs, "quantity": fbo + fbs,
+            })
+
+        result = []
+        for a in arts.values():
+            qty = a["fbo"] + a["fbs"]
+            avg = sales.get(a["nm_id"], 0)
             days_left = round(qty / avg, 1) if avg > 0 else None
             alert = "grey" if days_left is None else "red" if days_left < 7 else "yellow" if days_left < 14 else "green"
-            result.append({
-                "barcode": r["barcode"],
-                "nm_id": r["nm_id"],
-                "article": r["article"],
-                "name": r["name"],
-                "fbo": r["fbo"] or 0,
-                "fbs": r["fbs"] or 0,
-                "quantity": qty,
-                "days_left": days_left,
-                "alert": alert,
-            })
+            a["quantity"] = qty
+            a["days_left"] = days_left
+            a["alert"] = alert
+            a["variants"].sort(key=lambda v: (v["size"] or "", v["barcode"] or ""))
+            result.append(a)
+        result.sort(key=lambda x: -x["quantity"])
         return result
     finally:
         await db.close()

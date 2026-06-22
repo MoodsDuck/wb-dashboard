@@ -101,6 +101,7 @@ async def init_db() -> None:
             "ALTER TABLE finance_report ADD COLUMN other_deductions REAL NOT NULL DEFAULT 0",
             "ALTER TABLE stock_cache ADD COLUMN barcode TEXT",
             "ALTER TABLE stock_cache ADD COLUMN warehouse_type TEXT",
+            "ALTER TABLE stock_cache ADD COLUMN size TEXT",
         ]:
             try:
                 await db.execute(migration)

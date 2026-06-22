@@ -185,6 +185,11 @@
     tbody td{padding:11px 16px;font-size:12.5px;color:var(--txt2);border-bottom:1px solid var(--bd);transition:background .12s}
     tbody tr:last-child td{border-bottom:none}
     tbody tr:hover td{background:var(--acc-l);color:var(--txt)}
+    .st-art td{font-weight:500}
+    .st-caret{display:inline-block;color:var(--acc);font-size:11px;transition:transform .18s;font-weight:700}
+    .st-var td{background:var(--s2);font-size:12px;padding-top:7px;padding-bottom:7px}
+    .st-var:hover td{background:var(--acc-l)}
+    .st-var td:nth-child(3){padding-left:6px}
 
     /* ── Badges ── */
     .bdg{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:600;white-space:nowrap}
@@ -692,9 +697,53 @@ function OrdersTab({id,df,dt}){
 }
 
 /* ── Stock Tab ── */
+function daysCell(days,alert){
+  if(days==null)return<span className="muted">—</span>;
+  const col=alert==='red'?'#dc2626':alert==='yellow'?'#d97706':'#059669';
+  const pct=Math.min(days/30*100,100);
+  return(
+    <div className="flex ic g2">
+      <span className="num" style={{minWidth:28,fontSize:12,color:col,fontWeight:700}}>{days}д</span>
+      <div className="sbar"><div className="sfill" style={{width:`${pct}%`,background:col}}/></div>
+    </div>
+  );
+}
+function StockRow({r,open,onToggle}){
+  const vars=r.variants||[];
+  return(
+    <React.Fragment>
+      <tr className="st-art" onClick={vars.length?onToggle:undefined} style={{cursor:vars.length?'pointer':'default'}}>
+        <td style={{width:30,textAlign:'center'}}>
+          {vars.length>0&&<span className="st-caret" style={{transform:open?'rotate(90deg)':'none'}}>▸</span>}
+        </td>
+        <td><span className="bold">{r.article||'—'}</span></td>
+        <td><span className="truncate" style={{maxWidth:200,display:'block'}}>{r.name||'—'}</span></td>
+        <td><span className="bdg bdg-x">{vars.length} разм.</span></td>
+        <td><span className="num semi" style={{color:r.fbo>0?'var(--acc-t)':'var(--txt3)'}}>{fmt.n(r.fbo)}</span></td>
+        <td><span className="num semi" style={{color:r.fbs>0?'#c026a8':'var(--txt3)'}}>{fmt.n(r.fbs)}</span></td>
+        <td><span className="num bold">{fmt.n(r.quantity)}</span></td>
+        <td>{daysCell(r.days_left,r.alert)}</td>
+        <td><AlertBadge a={r.alert}/></td>
+      </tr>
+      {open&&vars.map((v,i)=>(
+        <tr key={i} className="st-var">
+          <td/>
+          <td><span className="muted" style={{fontSize:11.5}}>↳ размер</span></td>
+          <td><span className="semi">{v.size||'—'}</span></td>
+          <td><span className="muted" style={{fontSize:11}}>{v.barcode||'—'}</span></td>
+          <td><span className="num" style={{color:v.fbo>0?'var(--acc-t)':'var(--txt3)'}}>{fmt.n(v.fbo)}</span></td>
+          <td><span className="num" style={{color:v.fbs>0?'#c026a8':'var(--txt3)'}}>{fmt.n(v.fbs)}</span></td>
+          <td><span className="num semi">{fmt.n(v.quantity)}</span></td>
+          <td/><td/>
+        </tr>
+      ))}
+    </React.Fragment>
+  );
+}
 function StockTab({id}){
   const {data,loading,error}=useData(()=>api.get(`/api/cabinets/${id}/stock`),[id]);
   const [f,setF]=useState('all');
+  const [open,setOpen]=useState({});
   if(loading)return<Loader/>;
   if(error)return<Err msg={error}/>;
   const all=data||[];
@@ -703,44 +752,47 @@ function StockTab({id}){
   const totalFbo=all.reduce((s,r)=>s+(r.fbo||0),0);
   const totalFbs=all.reduce((s,r)=>s+(r.fbs||0),0);
   const filtered=f==='all'?all:all.filter(r=>r.alert===f);
-  function daysCell(days,alert){
-    if(days==null)return<span className="muted">—</span>;
-    const col=alert==='red'?'#dc2626':alert==='yellow'?'#d97706':'#059669';
-    const pct=Math.min(days/30*100,100);
-    return(
-      <div className="flex ic g2">
-        <span className="num" style={{minWidth:28,fontSize:12,color:col,fontWeight:700}}>{days}д</span>
-        <div className="sbar"><div className="sfill" style={{width:`${pct}%`,background:col}}/></div>
-      </div>
-    );
+  const allOpen=filtered.length>0&&filtered.every((r,i)=>open[r.article||i]);
+  function toggleAll(){
+    if(allOpen){setOpen({});}
+    else{const m={};filtered.forEach((r,i)=>{m[r.article||i]=true;});setOpen(m);}
   }
   return(
     <div className="aup">
       <div className="kgrid">
-        <KpiCard label="Позиций" value={fmt.n(all.length)} icon="📦" acc="linear-gradient(#3b82f6,#8b5cf6)" iconBg="#eff6ff" delay={0}/>
+        <KpiCard label="Артикулов" value={fmt.n(all.length)} icon="📦" acc="linear-gradient(#3b82f6,#8b5cf6)" iconBg="#eff6ff" delay={0}/>
         <KpiCard label="Остаток ФБО" value={fmt.n(totalFbo)} icon="🏭" acc="linear-gradient(#8b2fc9,#7c3aed)" iconBg="#f4eefe" delay={.05} sub="склады WB"/>
         <KpiCard label="Остаток ФБС" value={fmt.n(totalFbs)} icon="🏪" acc="linear-gradient(#c026a8,#e0218a)" iconBg="#fdf2fb" delay={.1} sub="свои склады"/>
         <KpiCard label="Срочно <7д" value={fmt.n(cnt.red)} icon="🔴" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc={cnt.red?'k-er':''} delay={.15}/>
         <KpiCard label="Скоро 7-14д" value={fmt.n(cnt.yellow)} icon="🟡" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" vc={cnt.yellow?'k-wa':''} delay={.2}/>
         <KpiCard label="В норме" value={fmt.n(cnt.green)} icon="🟢" acc="linear-gradient(#10b981,#059669)" iconBg="#ecfdf5" vc="k-ok" delay={.25}/>
       </div>
-      <div className="fbar" style={{marginBottom:12}}>
-        {[['all','Все'],['red','Срочно'],['yellow','Скоро'],['green','Норма'],['grey','Нет продаж']].map(([v,l])=>(
-          <button key={v} className={`btn btn-sm${f===v?' btn-p':' btn-g'}`} onClick={()=>setF(v)}>{l}</button>
-        ))}
+      <div className="flex ic jb" style={{marginBottom:12,flexWrap:'wrap',gap:8}}>
+        <div className="fbar">
+          {[['all','Все'],['red','Срочно'],['yellow','Скоро'],['green','Норма'],['grey','Нет продаж']].map(([v,l])=>(
+            <button key={v} className={`btn btn-sm${f===v?' btn-p':' btn-g'}`} onClick={()=>setF(v)}>{l}</button>
+          ))}
+        </div>
+        {filtered.length>0&&<button className="btn btn-g btn-sm" onClick={toggleAll}>{allOpen?'Свернуть всё':'Развернуть всё'}</button>}
       </div>
-      <DataTable title="Остатки склада" count={`${filtered.length} позиций`} empty="Нет данных по остаткам"
-        head={['Артикул','Баркод','Название','ФБО','ФБС','Итого','Дней осталось','Статус']}
-        rows={filtered.map(r=>[
-          <span className="bold">{r.article||'—'}</span>,
-          <span className="muted" style={{fontSize:11}}>{r.barcode||'—'}</span>,
-          <span className="truncate" style={{maxWidth:180,display:'block'}}>{r.name||'—'}</span>,
-          <span className="num semi" style={{color:r.fbo>0?'var(--acc-t)':'var(--txt3)'}}>{fmt.n(r.fbo)}</span>,
-          <span className="num semi" style={{color:r.fbs>0?'#c026a8':'var(--txt3)'}}>{fmt.n(r.fbs)}</span>,
-          <span className="num bold">{fmt.n(r.quantity)}</span>,
-          daysCell(r.days_left,r.alert),
-          <AlertBadge a={r.alert}/>,
-        ])}/>
+      <div className="tcard">
+        <div className="ttb"><div className="flex ic g2"><span className="ttl">Остатки склада</span><span className="tcnt">{filtered.length} артикулов</span></div></div>
+        {filtered.length===0
+          ?<div className="empty"><div className="empty-ic">📭</div><div className="empty-t">Нет данных по остаткам</div><div className="empty-s">Нажмите «Обновить данные» в правом верхнем углу</div></div>
+          :<div className="tovfl"><table>
+            <thead><tr>
+              <th/><th>Артикул</th><th>Название</th><th>Размеры</th>
+              <th>ФБО</th><th>ФБС</th><th>Итого</th><th>Дней осталось</th><th>Статус</th>
+            </tr></thead>
+            <tbody>
+              {filtered.map((r,i)=>{
+                const k=r.article||i;
+                return<StockRow key={k} r={r} open={!!open[k]} onToggle={()=>setOpen(o=>({...o,[k]:!o[k]}))}/>;
+              })}
+            </tbody>
+          </table></div>
+        }
+      </div>
     </div>
   );
 }
