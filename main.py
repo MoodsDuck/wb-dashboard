@@ -251,14 +251,23 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
     await _assert_cabinet_permission(user, cabinet_id, "stock")
     db = await get_db()
     try:
+        # One row per barcode. FBO = sum across all WB warehouses,
+        # FBS = sum across all seller warehouses. Rows without a barcode
+        # fall back to grouping by nm_id+article so they don't all collapse.
         cur = await db.execute("""
-            SELECT s.nm_id, s.article, s.name, s.warehouse,
-                   SUM(s.quantity) as quantity,
-                   MIN(s.checked_at) as checked_at
+            SELECT
+                COALESCE(NULLIF(s.barcode,''), 'nm:' || IFNULL(s.nm_id,'') || ':' || IFNULL(s.article,'')) AS grp,
+                MAX(s.barcode)  AS barcode,
+                MAX(s.nm_id)    AS nm_id,
+                MAX(s.article)  AS article,
+                MAX(s.name)     AS name,
+                SUM(CASE WHEN s.warehouse_type='fbs' THEN s.quantity ELSE 0 END) AS fbs,
+                SUM(CASE WHEN s.warehouse_type='fbs' THEN 0 ELSE s.quantity END) AS fbo,
+                SUM(s.quantity) AS quantity
             FROM stock_cache s
             WHERE s.cabinet_id=?
               AND s.checked_at = (SELECT MAX(checked_at) FROM stock_cache WHERE cabinet_id=?)
-            GROUP BY s.nm_id, s.article, s.name, s.warehouse
+            GROUP BY grp
             ORDER BY quantity ASC
         """, (cabinet_id, cabinet_id))
         rows = await cur.fetchall()
@@ -277,11 +286,21 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
 
         result = []
         for r in rows:
-            qty = r["quantity"]
+            qty = r["quantity"] or 0
             avg = sales.get(r["nm_id"], 0)
             days_left = round(qty / avg, 1) if avg > 0 else None
             alert = "grey" if days_left is None else "red" if days_left < 7 else "yellow" if days_left < 14 else "green"
-            result.append({**dict(r), "days_left": days_left, "alert": alert})
+            result.append({
+                "barcode": r["barcode"],
+                "nm_id": r["nm_id"],
+                "article": r["article"],
+                "name": r["name"],
+                "fbo": r["fbo"] or 0,
+                "fbs": r["fbs"] or 0,
+                "quantity": qty,
+                "days_left": days_left,
+                "alert": alert,
+            })
         return result
     finally:
         await db.close()

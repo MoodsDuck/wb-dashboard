@@ -218,6 +218,7 @@ async def _get_stocks_legacy(token: str) -> list[dict]:
             "nmId": nm_id,
             "vendorCode": r.get("supplierArticle"),
             "subjectName": r.get("subject") or r.get("category"),
+            "barcode": r.get("barcode"),
             "warehouses": [],
         })
         item["warehouses"].append({

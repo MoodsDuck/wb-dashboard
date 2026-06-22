@@ -145,35 +145,42 @@ async def _fetch_stocks(cabinet: dict) -> None:
                 name = meta.get("subject") or "FBS товар"
                 await db.execute("""
                     INSERT OR IGNORE INTO stock_cache
-                        (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name + " (FBS)"))
+                        (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse,
+                         barcode, warehouse_type)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbs')
+                """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name + " (FBS)", barcode))
                 continue
 
-            # warehouse_remains FBO row:
-            # nmId, vendorCode (article), subjectName (name), techSize, volume
+            # warehouse_remains FBO row (groupByBarcode=true):
+            # nmId, vendorCode (article), subjectName (name), barcode, techSize
             # warehouses: [{warehouseName, quantity, ...}]
             nm_id = s.get("nmId")
             article = s.get("vendorCode") or s.get("supplierArticle")
             name = s.get("subjectName") or s.get("subject") or s.get("category")
+            barcode = s.get("barcode") or s.get("sku")
 
             warehouses = s.get("warehouses") or []
             if warehouses:
                 for wh in warehouses:
                     wh_name = wh.get("warehouseName") or wh.get("name") or "Неизвестно"
+                    # "Всего находится на складах" is a WB total row — skip to avoid double count
+                    if wh_name.lower().startswith("всего"):
+                        continue
                     qty = wh.get("quantity") or wh.get("remains") or 0
                     await db.execute("""
                         INSERT OR IGNORE INTO stock_cache
-                            (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name))
+                            (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse,
+                             barcode, warehouse_type)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbo')
+                    """, (cabinet_id, checked_at, nm_id, article, name, qty, wh_name, barcode))
             else:
                 qty = s.get("quantity") or s.get("inWayToClient") or 0
                 await db.execute("""
                     INSERT OR IGNORE INTO stock_cache
-                        (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (cabinet_id, checked_at, nm_id, article, name, qty, "Общий FBO"))
+                        (cabinet_id, checked_at, nm_id, article, name, quantity, warehouse,
+                         barcode, warehouse_type)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'fbo')
+                """, (cabinet_id, checked_at, nm_id, article, name, qty, "Общий FBO", barcode))
 
         await db.commit()
         logger.info("[cabinet %d] stocks synced: %d items", cabinet_id, len(stocks))

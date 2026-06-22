@@ -700,6 +700,8 @@ function StockTab({id}){
   const all=data||[];
   const cnt={red:0,yellow:0,green:0,grey:0};
   all.forEach(r=>{if(cnt[r.alert]!=null)cnt[r.alert]++;});
+  const totalFbo=all.reduce((s,r)=>s+(r.fbo||0),0);
+  const totalFbs=all.reduce((s,r)=>s+(r.fbs||0),0);
   const filtered=f==='all'?all:all.filter(r=>r.alert===f);
   function daysCell(days,alert){
     if(days==null)return<span className="muted">—</span>;
@@ -716,9 +718,11 @@ function StockTab({id}){
     <div className="aup">
       <div className="kgrid">
         <KpiCard label="Позиций" value={fmt.n(all.length)} icon="📦" acc="linear-gradient(#3b82f6,#8b5cf6)" iconBg="#eff6ff" delay={0}/>
-        <KpiCard label="Срочно <7д" value={fmt.n(cnt.red)} icon="🔴" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc={cnt.red?'k-er':''} delay={.05}/>
-        <KpiCard label="Скоро 7-14д" value={fmt.n(cnt.yellow)} icon="🟡" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" vc={cnt.yellow?'k-wa':''} delay={.1}/>
-        <KpiCard label="В норме" value={fmt.n(cnt.green)} icon="🟢" acc="linear-gradient(#10b981,#059669)" iconBg="#ecfdf5" vc="k-ok" delay={.15}/>
+        <KpiCard label="Остаток ФБО" value={fmt.n(totalFbo)} icon="🏭" acc="linear-gradient(#8b2fc9,#7c3aed)" iconBg="#f4eefe" delay={.05} sub="склады WB"/>
+        <KpiCard label="Остаток ФБС" value={fmt.n(totalFbs)} icon="🏪" acc="linear-gradient(#c026a8,#e0218a)" iconBg="#fdf2fb" delay={.1} sub="свои склады"/>
+        <KpiCard label="Срочно <7д" value={fmt.n(cnt.red)} icon="🔴" acc="linear-gradient(#ef4444,#dc2626)" iconBg="#fef2f2" vc={cnt.red?'k-er':''} delay={.15}/>
+        <KpiCard label="Скоро 7-14д" value={fmt.n(cnt.yellow)} icon="🟡" acc="linear-gradient(#f59e0b,#d97706)" iconBg="#fffbeb" vc={cnt.yellow?'k-wa':''} delay={.2}/>
+        <KpiCard label="В норме" value={fmt.n(cnt.green)} icon="🟢" acc="linear-gradient(#10b981,#059669)" iconBg="#ecfdf5" vc="k-ok" delay={.25}/>
       </div>
       <div className="fbar" style={{marginBottom:12}}>
         {[['all','Все'],['red','Срочно'],['yellow','Скоро'],['green','Норма'],['grey','Нет продаж']].map(([v,l])=>(
@@ -726,11 +730,13 @@ function StockTab({id}){
         ))}
       </div>
       <DataTable title="Остатки склада" count={`${filtered.length} позиций`} empty="Нет данных по остаткам"
-        head={['Артикул','Название','Склад','Остаток','Дней осталось','Статус']}
+        head={['Артикул','Баркод','Название','ФБО','ФБС','Итого','Дней осталось','Статус']}
         rows={filtered.map(r=>[
           <span className="bold">{r.article||'—'}</span>,
+          <span className="muted" style={{fontSize:11}}>{r.barcode||'—'}</span>,
           <span className="truncate" style={{maxWidth:180,display:'block'}}>{r.name||'—'}</span>,
-          <span className="muted" style={{fontSize:11}}>{r.warehouse||'—'}</span>,
+          <span className="num semi" style={{color:r.fbo>0?'var(--acc-t)':'var(--txt3)'}}>{fmt.n(r.fbo)}</span>,
+          <span className="num semi" style={{color:r.fbs>0?'#c026a8':'var(--txt3)'}}>{fmt.n(r.fbs)}</span>,
           <span className="num bold">{fmt.n(r.quantity)}</span>,
           daysCell(r.days_left,r.alert),
           <AlertBadge a={r.alert}/>,
