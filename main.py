@@ -113,11 +113,9 @@ async def debug_admin_status():
     }
 
 
-@app.get("/api/debug-stocks/{cabinet_id}")
-async def debug_stocks(cabinet_id: int):
-    """Temp (no auth): inspect raw WB warehouse_remains + current stock_cache.
-    Remove after debugging. Open in browser:
-    /api/debug-stocks/<cabinet_id>"""
+@app.get("/api/admin/debug-stocks/{cabinet_id}")
+async def debug_stocks(cabinet_id: int, admin: dict = Depends(auth.require_admin)):
+    """Admin-only: inspect raw WB warehouse_remains + current stock_cache."""
     db = await get_db()
     try:
         cur = await db.execute("SELECT api_token FROM wb_cabinets WHERE id=?", (cabinet_id,))
