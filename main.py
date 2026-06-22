@@ -268,7 +268,7 @@ async def get_stock(cabinet_id: int, user: dict = Depends(auth.get_current_user)
             WHERE s.cabinet_id=?
               AND s.checked_at = (SELECT MAX(checked_at) FROM stock_cache WHERE cabinet_id=?)
             GROUP BY grp
-            ORDER BY quantity ASC
+            ORDER BY quantity DESC
         """, (cabinet_id, cabinet_id))
         rows = await cur.fetchall()
 
